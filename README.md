@@ -69,7 +69,7 @@ mensaje nuevo, no para contestar uno puntual. Las plantillas son por casilla: al
 **Si ya había texto escrito**, insertar una plantilla no lo pisa en silencio — aparece un diálogo de
 confirmación (`Dialog` genérico, tono neutro, no destructivo) antes de reemplazar.
 
-**Decisión de alcance:** esta ronda cubre *usar* plantillas, no *administrarlas*. Un CRUD para
+**Decisión de alcance:** esta ronda cubre _usar_ plantillas, no _administrarlas_. Un CRUD para
 crear/editar plantillas (y quién puede hacerlo — ¿cualquier admin, un rol específico?) es una
 funcionalidad en sí misma y queda para una iteración futura.
 
@@ -151,6 +151,7 @@ El panel derecho (`scheduled/page.tsx`) no tiene una vista de detalle por ítem:
 en el menú de 3 puntos de cada fila, así que solo hace falta explicar eso.
 
 **Acciones por fila (mismo patrón que Admin → Usuarios/Casillas — `ActionsMenu` + `ConfirmDialog`):**
+
 - **Editar** navega a `/compose?edit=<id>` (mismo mecanismo de intercepting route que "Redactar" del
   sidebar) y reabre Redactar con destinatario, asunto y cuerpo prellenados. No reprograma solo:
   la persona vuelve a elegir cuándo mandarlo (opción rápida o fecha/hora a mano), igual que un envío
@@ -279,6 +280,7 @@ menú se abría igual hacia abajo y quedaba parcialmente tapado.
 
 **La solución — `@floating-ui/react` (MIT, gratis):** es la librería que usan por debajo Radix UI y Headless
 UI para resolver exactamente este problema, así que no tiene sentido reescribirla a mano. Dos piezas:
+
 - `flip()`: si no hay espacio debajo, abre el menú hacia arriba solo — sin ningún cálculo manual.
 - `FloatingPortal`: renderiza el menú al final del `<body>` en vez de anidado dentro de la tabla, así ningún
   contenedor padre con scroll/overflow lo puede recortar.
