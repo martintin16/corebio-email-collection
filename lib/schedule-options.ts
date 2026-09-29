@@ -20,9 +20,19 @@ function addDays(base: Date, days: number): Date {
   return d;
 }
 
-const WEEKDAY_LABELS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const WEEKDAY_LABELS = [
+  "domingo",
+  "lunes",
+  "martes",
+  "miércoles",
+  "jueves",
+  "viernes",
+  "sábado",
+];
 
-export function getQuickScheduleOptions(now: Date = new Date()): QuickScheduleOption[] {
+export function getQuickScheduleOptions(
+  now: Date = new Date(),
+): QuickScheduleOption[] {
   const options: QuickScheduleOption[] = [];
 
   const thisAfternoon = atTime(now, 15, 0);
@@ -52,7 +62,7 @@ export function getQuickScheduleOptions(now: Date = new Date()): QuickScheduleOp
 
   // Próximo lunes a las 8: si hoy ya es lunes, salta a la semana siguiente.
   const dayOfWeek = now.getDay(); // 0 = domingo
-  const daysUntilMonday = ((1 - dayOfWeek + 7) % 7) || 7;
+  const daysUntilMonday = (1 - dayOfWeek + 7) % 7 || 7;
   const nextMonday = atTime(addDays(now, daysUntilMonday), 8, 0);
   options.push({
     id: "next-monday",
@@ -64,7 +74,10 @@ export function getQuickScheduleOptions(now: Date = new Date()): QuickScheduleOp
 }
 
 export function formatTime(date: Date): string {
-  return date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function formatScheduledAt(date: Date): string {
@@ -72,18 +85,25 @@ export function formatScheduledAt(date: Date): string {
   const sameYear = date.getFullYear() === now.getFullYear();
   const datePart = sameYear
     ? date.toLocaleDateString("es-AR", { day: "2-digit", month: "long" })
-    : date.toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+    : date.toLocaleDateString("es-AR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
   return `el ${datePart} a las ${formatTime(date)}`;
 }
 
 export function weekdayLabel(date: Date): string {
-  return WEEKDAY_LABELS[date.getDay()];
+  return WEEKDAY_LABELS[date.getDay()]!;
 }
 
 // Mínimo 5 minutos en el futuro — ni "en el pasado" (imposible de cumplir)
 // ni "ahora mismo" (para eso está el botón "Enviar").
 export const MIN_SCHEDULE_LEAD_MS = 5 * 60 * 1000;
 
-export function isValidScheduleTime(date: Date, now: Date = new Date()): boolean {
+export function isValidScheduleTime(
+  date: Date,
+  now: Date = new Date(),
+): boolean {
   return date.getTime() >= now.getTime() + MIN_SCHEDULE_LEAD_MS;
 }
