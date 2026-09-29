@@ -33,7 +33,12 @@ interface Crumb {
 // "Editar permisos" de esa persona. Alcance de esta ronda: elegir qué
 // compartir (checkboxes + Guardar), no un Drive completo — no hay subir,
 // renombrar ni eliminar acá, eso se sigue haciendo en Google Drive.
-export function ManageDriveDialog({ open, onClose, mailbox, user }: ManageDriveDialogProps) {
+export function ManageDriveDialog({
+  open,
+  onClose,
+  mailbox,
+  user,
+}: ManageDriveDialogProps) {
   const { showToast } = useToast();
   const [path, setPath] = useState<Crumb[]>([getDriveRootFolder()]);
   const [state, setState] = useState<"loading" | "loaded" | "error">("loading");
@@ -46,7 +51,7 @@ export function ManageDriveDialog({ open, onClose, mailbox, user }: ManageDriveD
   // navegó a otra carpeta antes de que la reintentada responda.
   const [reloadToken, setReloadToken] = useState(0);
 
-  const currentFolder = path[path.length - 1];
+  const currentFolder = path[path.length - 1]!;
 
   // Al abrir (o cambiar de casilla/persona), arrancar de nuevo desde la
   // raíz y volver a pedir qué está compartido hoy — no tendría sentido
@@ -109,7 +114,10 @@ export function ManageDriveDialog({ open, onClose, mailbox, user }: ManageDriveD
       showToast("success", `Acceso a Drive de ${user.name} actualizado.`);
       onClose();
     } catch {
-      showToast("error", "No pudimos guardar los cambios de Drive. Intentá de nuevo.");
+      showToast(
+        "error",
+        "No pudimos guardar los cambios de Drive. Intentá de nuevo.",
+      );
     } finally {
       setSaving(false);
     }
@@ -139,7 +147,7 @@ export function ManageDriveDialog({ open, onClose, mailbox, user }: ManageDriveD
                   "rounded px-1 transition-colors",
                   i === path.length - 1
                     ? "font-medium text-gray-800"
-                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-700",
                 )}
               >
                 {crumb.name}
@@ -174,7 +182,9 @@ export function ManageDriveDialog({ open, onClose, mailbox, user }: ManageDriveD
           )}
 
           {state === "loaded" && items.length === 0 && (
-            <p className="py-10 text-center text-xs text-gray-500">Esta carpeta está vacía.</p>
+            <p className="py-10 text-center text-xs text-gray-500">
+              Esta carpeta está vacía.
+            </p>
           )}
 
           {state === "loaded" && items.length > 0 && (
@@ -186,7 +196,7 @@ export function ManageDriveDialog({ open, onClose, mailbox, user }: ManageDriveD
                     key={item.id}
                     className={cn(
                       "flex items-center gap-2.5 px-3 py-2",
-                      isSelected && "bg-primary-100/40"
+                      isSelected && "bg-primary-100/40",
                     )}
                   >
                     <input
@@ -209,11 +219,11 @@ export function ManageDriveDialog({ open, onClose, mailbox, user }: ManageDriveD
                         {item.name}
                       </button>
                     ) : (
-                      <span className="flex-1 truncate text-sm text-gray-800">{item.name}</span>
+                      <span className="flex-1 truncate text-sm text-gray-800">
+                        {item.name}
+                      </span>
                     )}
-                    {item.shared && (
-                      <Badge tone="success">Compartido</Badge>
-                    )}
+                    {item.shared && <Badge tone="success">Compartido</Badge>}
                     {item.type === "folder" && (
                       <ChevronDownIcon className="h-3 w-3 shrink-0 -rotate-90 text-gray-300" />
                     )}
@@ -231,7 +241,12 @@ export function ManageDriveDialog({ open, onClose, mailbox, user }: ManageDriveD
               : `${selected.size} elemento${selected.size === 1 ? "" : "s"} seleccionado${selected.size === 1 ? "" : "s"}`}
           </span>
           <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={saving}
+            >
               Cancelar
             </Button>
             <Button type="button" onClick={handleSave} isLoading={saving}>

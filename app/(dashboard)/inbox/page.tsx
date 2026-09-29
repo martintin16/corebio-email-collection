@@ -13,19 +13,21 @@ export default async function InboxPage() {
         <EmptyState
           icon={MailOffIcon}
           title="Todavía no tenés casillas asignadas"
-          description='Pedile a un administrador que te dé acceso a una casilla de Corebio para poder ver tus mails.'
+          description="Pedile a un administrador que te dé acceso a una casilla de Corebio para poder ver tus mails."
         />
       </div>
     );
   }
 
   if (mailboxes.length === 1) {
-    redirect(`/inbox/${mailboxes[0].id}`);
+    redirect(`/inbox/${mailboxes[0]!.id}`);
   }
 
   return (
     <div className="mx-auto max-w-sm p-8">
-      <p className="mb-4 text-sm font-medium text-gray-900">Elegí una casilla</p>
+      <p className="mb-4 text-sm font-medium text-gray-900">
+        Elegí una casilla
+      </p>
       <ul className="space-y-1.5">
         {mailboxes.map((mailbox) => (
           <li key={mailbox.id}>
