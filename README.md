@@ -352,6 +352,34 @@ que consumen tanto Inbox como Compose (`getMailboxesForCurrentUser`).
 - Mostrar / ocultar contraseña.
 - Accesible: labels asociados, `aria-invalid`, `aria-describedby`, foco visible, orden de tabulación correcto.
 
+## Conexión con el backend
+
+El front habla con el backend (NestJS, repo `corebio-email-backend`) en `NEXT_PUBLIC_API_URL`.
+
+**Un archivo por entidad en `lib/api/`**, como los módulos del backend. Las pages y los componentes
+llaman funciones (`await getUsers()`, `await getMessages(mailboxId)`) y no saben de URLs ni tokens:
+
+```
+lib/api/
+  http.server.ts        interno: pedidos desde el servidor de Next (token de la sesión, por cookies)
+  http.browser.ts       interno: pedidos desde el navegador, solo para lo que lleva archivos
+  errors.ts             ApiError y ActionResult
+  auth.ts, mailboxes.ts, users.ts, messages.ts, scheduled-messages.ts,
+  templates.ts, contacts.ts, drive.ts          "use server": casi todo
+  messages.browser.ts, scheduled-messages.browser.ts   enviar/responder/programar con adjuntos y descargas
+```
+
+- **Casi todo corre en el servidor de Next** (`"use server"`): sirve igual desde una page o desde un
+  componente del navegador, y el token del usuario nunca pasa por el navegador.
+- **Lo que lleva archivos va directo del navegador al backend**: Vercel corta en 4,5 MB lo que pasa por
+  el servidor de Next, y los adjuntos pueden ser de 20 MB. Ahí se usa el token de la sesión de Supabase
+  que el navegador ya tiene para el login.
+- **Lecturas** devuelven los datos y, si fallan, lanzan `ApiError` (si la sesión venció, al login).
+  **Acciones** (enviar, guardar, borrar) devuelven `{ ok: true, data }` o `{ ok: false, error }`: en
+  producción Next oculta el texto de los errores que vienen del servidor, y el formulario necesita el
+  mensaje real del backend (ej. "quedan 3 destinatarios hoy"). `error.code` distingue los casos
+  especiales (`RECIPIENT_LIMIT_EXCEEDED`, `TEMPLATE_NAME_TAKEN`, `mailbox_needs_reconnect`…).
+
 ## Setup para correrlo y probarlo
 
 `npm install && npm run dev` no alcanza solo: el login pega de verdad contra Supabase Auth (es lo único que
