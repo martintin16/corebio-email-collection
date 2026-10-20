@@ -3,6 +3,9 @@
 export interface ScheduleMessageInput {
   mailboxId: string;
   to: string;
+  // Mismo formato que `to`; vacío si no hay.
+  cc?: string;
+  bcc?: string;
   subject: string;
   body: string;
   // ISO 8601, en UTC — la vista siempre lo formatea en horario de Argentina.

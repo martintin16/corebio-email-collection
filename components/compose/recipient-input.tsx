@@ -2,8 +2,10 @@
 
 import {
   useCallback,
+  forwardRef,
   useEffect,
   useId,
+  useImperativeHandle,
   useRef,
   useState,
   type ClipboardEvent as ReactClipboardEvent,
@@ -34,6 +36,7 @@ import type {
   Contact,
   ContactGroup,
   ContactsDirectory,
+  PickedGroup,
   PickedRecipients,
 } from "@/lib/types/contact";
 
@@ -52,8 +55,19 @@ type SuggestionOption =
   | { type: "group"; group: ContactGroup }
   | { type: "contact"; contact: Contact };
 
+export interface RecipientInputHandle {
+  // Agrega grupos enteros como chips (lo usa el form para mandar a Cco los
+  // grupos que se eligieron desde el campo "Para").
+  addGroups: (groups: PickedGroup[]) => void;
+}
+
 interface RecipientInputProps {
   id: string;
+  // Si se pasa, los grupos que se elijan en este campo (autocompletado o
+  // diálogo) no se agregan acá: se entregan a esta función, y las personas
+  // sueltas sí quedan. Así "Para" nunca expone a los miembros de un grupo.
+  onGroupsPicked?: (groups: PickedGroup[]) => void;
+  placeholder?: string;
   // Los contactos y grupos son de cada casilla (la de "De").
   mailboxId: string;
   // Direcciones separadas por coma — el mismo formato que guarda el form
@@ -92,15 +106,21 @@ const EMPTY_DIRECTORY: ContactsDirectory = { status: "idle", groups: [], contact
 // Un grupo se agrega colapsado, como un solo chip con su cantidad de
 // miembros: para el envío igual se arma la lista completa de direcciones,
 // el colapso es solo visual.
-export function RecipientInput({
-  id,
-  mailboxId,
-  value,
-  onChange,
-  invalid,
-  describedBy,
-  disabled,
-}: RecipientInputProps) {
+export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputProps>(
+  function RecipientInput(
+    {
+      id,
+      mailboxId,
+      value,
+      onChange,
+      invalid,
+      describedBy,
+      disabled,
+      onGroupsPicked,
+      placeholder,
+    },
+    handleRef
+  ) {
   const { showToast } = useToast();
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -283,17 +303,14 @@ export function RecipientInput({
         showToast("error", `El grupo "${group.name}" no tiene contactos todavía.`);
         return;
       }
-      const current = entriesRef.current;
-      const next = current.filter((e) => !(e.kind === "group" && e.groupId === group.id));
-      next.push({
-        kind: "group",
-        key: makeKey(),
-        groupId: group.id,
-        name: group.name,
-        members,
-        expanded: false,
-      });
-      apply(next, "");
+      const picked = { id: group.id, name: group.name, members };
+      if (onGroupsPicked) {
+        onGroupsPicked([picked]);
+        setDraft("");
+        onChange(buildValue(entriesRef.current, ""));
+        return;
+      }
+      apply(mergeGroups(entriesRef.current, [picked]), "");
     } catch {
       showToast("error", "No pudimos agregar el grupo. Intentá de nuevo.");
     } finally {
@@ -310,9 +327,9 @@ export function RecipientInput({
 
   // Lo que devuelve el diálogo "Elegir desde contactos": grupos completos
   // (un chip cada uno) y contactos sueltos.
-  function handlePicked(picked: PickedRecipients) {
-    const next = [...entriesRef.current];
-    for (const group of picked.groups) {
+  function mergeGroups(base: RecipientEntry[], groups: PickedGroup[]): RecipientEntry[] {
+    const next = [...base];
+    for (const group of groups) {
       const index = next.findIndex((e) => e.kind === "group" && e.groupId === group.id);
       const existing = index >= 0 ? next[index] : undefined;
       const entry: RecipientEntry = {
@@ -325,6 +342,20 @@ export function RecipientInput({
       };
       if (index >= 0) next[index] = entry;
       else next.push(entry);
+    }
+    return next;
+  }
+
+  useImperativeHandle(handleRef, () => ({
+    addGroups: (groups) => apply(mergeGroups(entriesRef.current, groups), draft),
+  }));
+
+  function handlePicked(picked: PickedRecipients) {
+    let next = [...entriesRef.current];
+    if (onGroupsPicked) {
+      if (picked.groups.length > 0) onGroupsPicked(picked.groups);
+    } else {
+      next = mergeGroups(next, picked.groups);
     }
     const have = new Set(emailsOf(next).map((email) => email.toLowerCase()));
     for (const contact of picked.contacts) {
@@ -478,7 +509,9 @@ export function RecipientInput({
           aria-describedby={describedBy}
           value={draft}
           disabled={disabled}
-          placeholder={hasEntries ? "Escribir o buscar…" : "nombre@mail.com o buscá un contacto"}
+          placeholder={
+            hasEntries ? "Escribir o buscar…" : placeholder ?? "nombre@mail.com o buscá un contacto"
+          }
           onChange={(e) => handleDraftChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
@@ -569,7 +602,8 @@ export function RecipientInput({
       />
     </>
   );
-}
+  }
+);
 
 function PersonChip({
   email,

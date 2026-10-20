@@ -534,6 +534,7 @@ Todo con datos mock (`lib/api/labels.ts`, `lib/api/contacts.ts`); la integració
 **Contactos en "Para"**
 - `RecipientInput`: chips por destinatario, autocompletado de contactos y grupos, pegado de listas, direcciones inválidas en rojo. El valor sigue siendo un string separado por comas, así que el resto de Redactar no cambia.
 - Un grupo se agrega como un solo chip colapsado (se expande para quitar miembros).
+- **Cc y Cco**: campos aparte, ocultos hasta tocar "Cc" / "Cco" (como Gmail). Un grupo elegido en "Para" (autocompletado o diálogo) va a **Cco** automáticamente, con un aviso, para que sus miembros no se vean entre sí; las personas sueltas quedan en "Para". Si se elige el grupo desde "Cc" se queda ahí. Alcanza con tener al menos un destinatario en cualquiera de los tres. Contrato: `{ to, cc, bcc }`, cada uno un string de emails separados por coma. Redactar muestra "N destinatarios" cuando son más de uno; el cupo diario (~500) lo valida el backend.
 - `RecipientPickerDialog` (lupa): grupos a la izquierda con "seleccionar todo" de tres estados, miembros o búsqueda a la derecha.
 
 ## Pendiente
