@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getMailboxesForCurrentUser } from "@/lib/api/mail";
+import { getMailboxesForCurrentUser } from "@/lib/api/mailboxes";
 import { TemplatesScreen } from "@/components/templates/templates-screen";
 
 export const metadata: Metadata = {
@@ -7,6 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default async function TemplatesPage() {
-  const mailboxes = await getMailboxesForCurrentUser();
+  // Las plantillas se usan en Redactar: solo las casillas desde las que la persona puede enviar.
+  const mailboxes = (await getMailboxesForCurrentUser()).filter((m) => m.canSend);
   return <TemplatesScreen mailboxes={mailboxes} />;
 }

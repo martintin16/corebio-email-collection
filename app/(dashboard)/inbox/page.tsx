@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getMailboxesForCurrentUser } from "@/lib/api/mail";
+import { getMailboxesForCurrentUser } from "@/lib/api/mailboxes";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MailOffIcon, InboxIcon } from "@/components/icons";
 

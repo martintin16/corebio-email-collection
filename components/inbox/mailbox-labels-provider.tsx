@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getLabelsForMailbox } from "@/lib/api/labels";
+import { getLabelsForMailbox } from "@/lib/api/messages";
 import type { MailLabel } from "@/lib/types/label";
 
 type LabelsStatus = "loading" | "loaded" | "error";

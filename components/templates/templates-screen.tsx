@@ -109,7 +109,9 @@ export function TemplatesScreen({ mailboxes }: { mailboxes: Mailbox[] }) {
   async function handleDuplicate(template: MessageTemplate) {
     setBusy(true);
     try {
-      const copy = await duplicateTemplate(mailboxId, template.id);
+      const result = await duplicateTemplate(mailboxId, template);
+      if (!result.ok) throw new Error(result.error.message);
+      const copy = result.data;
       setTemplates((prev) => [...prev, copy].sort(byName));
       showToast("success", "Plantilla duplicada.");
       // Se abre la copia para que lo primero sea ponerle su propio nombre.
@@ -125,7 +127,8 @@ export function TemplatesScreen({ mailboxes }: { mailboxes: Mailbox[] }) {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await deleteTemplate(mailboxId, deleteTarget.id);
+      const result = await deleteTemplate(mailboxId, deleteTarget.id);
+      if (!result.ok) throw new Error(result.error.message);
       setTemplates((prev) => prev.filter((t) => t.id !== deleteTarget.id));
       showToast("success", `"${deleteTarget.name}" fue eliminada.`);
       setDeleteTarget(null);

@@ -15,7 +15,8 @@ interface TemplatePickerProps {
   // Si ya hay texto escrito, insertar una plantilla lo reemplazaría sin
   // avisar — por eso hace falta saber si conviene confirmar antes.
   hasContent: boolean;
-  onInsert: (html: string) => void;
+  // `subject`: el asunto de la plantilla, o null si no tiene.
+  onInsert: (html: string, subject: string | null) => void;
 }
 
 // Solo en Redactar, no en Responder — una plantilla institucional tiene
@@ -43,11 +44,18 @@ export function TemplatePicker({ mailboxId, hasContent, onInsert }: TemplatePick
     if (!open) return;
     let cancelled = false;
     setState("loading");
-    getTemplatesForMailbox(mailboxId).then((data) => {
-      if (cancelled) return;
-      setTemplates(data);
-      setState("loaded");
-    });
+    getTemplatesForMailbox(mailboxId)
+      .then((data) => {
+        if (cancelled) return;
+        setTemplates(data);
+        setState("loaded");
+      })
+      .catch(() => {
+        // Sin plantillas no se rompe nada: el menú queda vacío.
+        if (cancelled) return;
+        setTemplates([]);
+        setState("loaded");
+      });
     return () => {
       cancelled = true;
     };
@@ -92,12 +100,12 @@ export function TemplatePicker({ mailboxId, hasContent, onInsert }: TemplatePick
     if (hasContent) {
       setPending(tpl);
     } else {
-      onInsert(tpl.body);
+      onInsert(tpl.body, tpl.subject);
     }
   }
 
   function confirmReplace() {
-    if (pending) onInsert(pending.body);
+    if (pending) onInsert(pending.body, pending.subject);
     setPending(null);
   }
 

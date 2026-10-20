@@ -9,6 +9,8 @@ export const templateSchema = z.object({
     .trim()
     .min(1, "Ingresá un nombre")
     .max(TEMPLATE_NAME_MAX, `Máximo ${TEMPLATE_NAME_MAX} caracteres`),
+  // Opcional: si tiene, se completa en Redactar cuando el asunto está vacío.
+  subject: z.string().max(500, "Máximo 500 caracteres"),
   // El editor enriquecido guarda HTML — un campo "vacío" sigue siendo un
   // string no-vacío como "<p></p>". Se valida contra el texto plano, igual
   // que el cuerpo en Redactar.

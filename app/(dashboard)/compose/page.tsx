@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getMailboxesForCurrentUser, getSentMessageById } from "@/lib/api/mail";
+import { getMailboxesForCurrentUser } from "@/lib/api/mailboxes";
+import { getSentMessageById } from "@/lib/api/messages";
 import { getScheduledMessageById } from "@/lib/api/scheduled-messages";
 import { buildForwardSubject, buildForwardBody } from "@/lib/forward";
 import { ComposeForm } from "@/components/compose/compose-form";

@@ -1,7 +1,22 @@
+// Tipos de la API del backend (mensajes de Gmail de cada casilla).
+
 export interface Mailbox {
   id: string;
   email: string;
   displayName: string;
+  // Lo que la persona puede hacer en esa casilla: leer (Recibidos, Enviados,
+  // Programados) y enviar (Redactar, Responder, Plantillas, Contactos).
+  canRead: boolean;
+  canSend: boolean;
+}
+
+// Un adjunto de un mensaje; se baja con downloadMessageAttachment().
+export interface AttachmentInfo {
+  // Id del adjunto dentro del mensaje (el `partId` de Gmail, ej. "1").
+  id: string;
+  filename: string;
+  mimeType: string;
+  size: number; // bytes
 }
 
 export interface MessageSummary {
@@ -16,8 +31,12 @@ export interface MessageSummary {
 }
 
 export interface MessageDetail extends MessageSummary {
+  // Texto plano (se muestra como texto, no como HTML).
   body: string;
   to: string;
+  // Header Cc tal cual ("" si no hay). En un recibido no existe el Bcc.
+  cc: string;
+  attachments: AttachmentInfo[];
 }
 
 export interface SentMessageSummary {
@@ -30,5 +49,8 @@ export interface SentMessageSummary {
 
 export interface SentMessageDetail extends SentMessageSummary {
   mailboxId: string;
-  body: string; // HTML — viene del editor enriquecido (Redactar/Responder)
+  body: string; // HTML ya sanitizado por el backend
+  cc: string;
+  bcc: string;
+  attachments: AttachmentInfo[];
 }

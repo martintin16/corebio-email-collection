@@ -55,6 +55,7 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
     handleSubmit,
     control,
     setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<ComposeFormValues>({
     resolver: zodResolver(composeSchema),
@@ -338,7 +339,13 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
           <TemplatePicker
             mailboxId={selectedMailboxId}
             hasContent={hasBodyContent}
-            onInsert={(html) => setValue("body", html, { shouldValidate: true, shouldDirty: true })}
+            onInsert={(html, subject) => {
+              setValue("body", html, { shouldValidate: true, shouldDirty: true });
+              // El asunto de la plantilla solo se usa si todavía no se escribió uno.
+              if (subject && !getValues("subject").trim()) {
+                setValue("subject", subject, { shouldValidate: true, shouldDirty: true });
+              }
+            }}
           />
         )}
       </div>

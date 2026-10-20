@@ -6,7 +6,7 @@ import { TagIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast/toast-context";
 import { useMailboxLabels } from "@/components/inbox/mailbox-labels-provider";
-import { updateMessageLabels } from "@/lib/actions/labels";
+import { updateMessageLabels } from "@/lib/api/messages";
 import { getLabelColors } from "@/lib/label-colors";
 import { pushDialogLayer, popDialogLayer, isTopDialogLayer } from "@/lib/dialog-stack";
 import { cn } from "@/lib/utils";
@@ -80,12 +80,13 @@ export function LabelPicker({ mailboxId, messageId, initialLabelIds }: LabelPick
     const next = isOn ? previous.filter((id) => id !== labelId) : [...previous, labelId];
     setLabelIds(messageId, next);
     try {
-      await updateMessageLabels({
+      const result = await updateMessageLabels({
         mailboxId,
         messageId,
         add: isOn ? [] : [labelId],
         remove: isOn ? [labelId] : [],
       });
+      if (!result.ok) throw new Error(result.error.message);
     } catch {
       setLabelIds(messageId, previous);
       showToast("error", "No pudimos actualizar las etiquetas. Intentá de nuevo.");

@@ -10,11 +10,7 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { RichTextEditor } from "@/components/compose/rich-text-editor";
 import { useToast } from "@/components/ui/toast/toast-context";
-import {
-  createTemplate,
-  updateTemplate,
-  TemplateNameTakenError,
-} from "@/lib/api/templates";
+import { createTemplate, updateTemplate } from "@/lib/api/templates";
 import {
   templateSchema,
   TEMPLATE_NAME_MAX,
@@ -58,7 +54,11 @@ export function TemplateEditorDialog({
     formState: { errors, isSubmitting, isDirty },
   } = useForm<TemplateFormValues>({
     resolver: zodResolver(templateSchema),
-    defaultValues: { name: template?.name ?? "", body: template?.body ?? "" },
+    defaultValues: {
+      name: template?.name ?? "",
+      subject: template?.subject ?? "",
+      body: template?.body ?? "",
+    },
   });
 
   const nameValue = useWatch({ control, name: "name" }) ?? "";
@@ -78,17 +78,22 @@ export function TemplateEditorDialog({
       setError("name", { message: NAME_TAKEN_MESSAGE });
       return;
     }
+    const input = { name, subject: values.subject.trim() || null, body: values.body };
     try {
-      const saved = template
-        ? await updateTemplate(mailboxId, template.id, { name, body: values.body })
-        : await createTemplate(mailboxId, { name, body: values.body });
-      showToast("success", "Plantilla guardada.");
-      onSaved(saved);
-    } catch (error) {
-      if (error instanceof TemplateNameTakenError) {
-        setError("name", { message: NAME_TAKEN_MESSAGE });
+      const result = template
+        ? await updateTemplate(mailboxId, template.id, input)
+        : await createTemplate(mailboxId, input);
+      if (!result.ok) {
+        if (result.error.code === "TEMPLATE_NAME_TAKEN") {
+          setError("name", { message: NAME_TAKEN_MESSAGE });
+          return;
+        }
+        setFormError(result.error.message);
         return;
       }
+      showToast("success", "Plantilla guardada.");
+      onSaved(result.data);
+    } catch {
       setFormError("No pudimos guardar la plantilla. Intentá de nuevo.");
     }
   }
@@ -131,6 +136,20 @@ export function TemplateEditorDialog({
             >
               {nameValue.length} / {TEMPLATE_NAME_MAX}
             </p>
+          </FormField>
+
+          <FormField
+            id="template-subject"
+            label="Asunto (opcional)"
+            error={errors.subject?.message}
+          >
+            <Input
+              id="template-subject"
+              placeholder="Se completa en Redactar si el asunto está vacío"
+              autoComplete="off"
+              aria-invalid={!!errors.subject}
+              {...register("subject")}
+            />
           </FormField>
 
           <div className="mb-1">

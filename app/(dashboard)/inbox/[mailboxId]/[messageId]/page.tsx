@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getMessage } from "@/lib/api/mail";
+import { getMessage } from "@/lib/api/messages";
 import { ReplyBox } from "@/components/inbox/reply-box";
 import { LabelPicker } from "@/components/inbox/label-picker";
 import { MessageLabelChips } from "@/components/inbox/message-label-chips";
+import { AttachmentList } from "@/components/inbox/attachment-list";
 import { ArrowLeftIcon } from "@/components/icons";
 
 export default async function MessagePage({
@@ -37,6 +38,7 @@ export default async function MessagePage({
       <MessageLabelChips messageId={message.id} initialLabelIds={message.labelIds} />
       <p className="mb-4 text-xs text-gray-500">
         {message.from.name} &lt;{message.from.email}&gt; · para {message.to}
+        {message.cc && <> · cc {message.cc}</>}
       </p>
 
       <div className="mb-5 border-t border-gray-200" />
@@ -44,6 +46,12 @@ export default async function MessagePage({
       <p className="whitespace-pre-line text-sm leading-relaxed text-gray-800">
         {message.body}
       </p>
+
+      <AttachmentList
+        mailboxId={params.mailboxId}
+        messageId={message.id}
+        attachments={message.attachments}
+      />
 
       <div className="mt-6">
         <ReplyBox
