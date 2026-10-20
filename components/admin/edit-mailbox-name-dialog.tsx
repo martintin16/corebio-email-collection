@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { useToast } from "@/components/ui/toast/toast-context";
-import { updateMailboxDisplayName } from "@/lib/actions/mailboxes";
+import { updateMailboxDisplayName } from "@/lib/api/mailboxes";
 import {
   editMailboxNameSchema,
   type EditMailboxNameFormValues,
@@ -49,7 +49,7 @@ export function EditMailboxNameDialog({ open, onClose, mailbox }: EditMailboxNam
     setFormError(null);
     const result = await updateMailboxDisplayName(mailbox.id, values);
     if (!result.ok) {
-      setFormError("No pudimos guardar el cambio. Intentá de nuevo.");
+      setFormError(result.error.message);
       return;
     }
     showToast("success", "Nombre visible actualizado.");

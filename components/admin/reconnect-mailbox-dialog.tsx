@@ -5,7 +5,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { useToast } from "@/components/ui/toast/toast-context";
-import { reconnectMailbox } from "@/lib/actions/mailboxes";
+import { reconnectMailbox } from "@/lib/api/mailboxes";
 import type { AdminMailbox } from "@/lib/types/admin";
 
 interface ReconnectMailboxDialogProps {
@@ -32,16 +32,16 @@ export function ReconnectMailboxDialog({ open, onClose, mailbox }: ReconnectMail
   async function handleReconnect() {
     setFormError(null);
     setIsLoading(true);
-    // TODO: acá va la redirección real al consentimiento de Google, igual
-    // que en ConnectMailboxDialog — se simula el resultado final.
+    // El navegador va a Google para que la cuenta de la casilla vuelva a
+    // autorizar el acceso; Google vuelve a /admin/mailboxes con el resultado.
     const result = await reconnectMailbox(mailbox.id);
-    setIsLoading(false);
     if (!result.ok) {
-      setFormError("No pudimos reconectar la casilla. Intentá de nuevo.");
+      setIsLoading(false);
+      setFormError(result.error.message);
       return;
     }
-    showToast("success", `${mailbox.email} fue reconectada.`);
-    onClose();
+    showToast("success", "Te llevamos a Google para autorizar la casilla…");
+    window.location.assign(result.data.authUrl);
   }
 
   return (

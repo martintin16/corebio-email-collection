@@ -41,6 +41,10 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    // Para volver a donde iba después de iniciar sesión (ej. a mitad de
+    // conectar una casilla con Google).
+    url.search = "";
+    if (pathname !== "/") url.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(url);
   }
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { getMailboxAccessList } from "@/lib/actions/mailboxes";
+import { getMailboxAccessList } from "@/lib/api/mailboxes";
 import type { AdminMailbox } from "@/lib/types/admin";
 
 interface MailboxUsersDialogProps {

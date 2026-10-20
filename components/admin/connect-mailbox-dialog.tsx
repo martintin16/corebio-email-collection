@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { useToast } from "@/components/ui/toast/toast-context";
-import { connectMailbox } from "@/lib/actions/mailboxes";
+import { connectMailbox } from "@/lib/api/mailboxes";
 import {
   connectMailboxSchema,
   type ConnectMailboxFormValues,
@@ -42,15 +42,18 @@ export function ConnectMailboxDialog({ open, onClose }: ConnectMailboxDialogProp
 
   async function onSubmit(values: ConnectMailboxFormValues) {
     setFormError(null);
-    // TODO: acá va la redirección real a Google OAuth (ver TODO en
-    // lib/actions/mailboxes.ts). Por ahora se simula la conexión directamente.
+    // Se da de alta la casilla y el navegador va a Google para que la cuenta
+    // de la casilla autorice el acceso. Google vuelve a /admin/mailboxes con
+    // ?connected=<id> o ?connectionError=<código> (ver ConnectionResultNotice).
     const result = await connectMailbox(values);
     if (!result.ok) {
-      setFormError("No pudimos conectar la casilla. Intentá de nuevo.");
+      // Ej. 409: ya existe una casilla con ese email.
+      setFormError(result.error.message);
       return;
     }
-    showToast("success", `${values.email} conectada.`);
-    handleClose();
+    showToast("success", "Te llevamos a Google para autorizar la casilla…");
+    window.location.assign(result.data.authUrl);
+    // El overlay queda puesto hasta que el navegador cambie de página.
   }
 
   return (

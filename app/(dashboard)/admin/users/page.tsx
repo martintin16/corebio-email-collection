@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getUsers, getMailboxConnections } from "@/lib/api/admin";
+import { getUsers } from "@/lib/api/users";
+import { getMailboxConnections } from "@/lib/api/mailboxes";
 import { UsersTable } from "@/components/admin/users-table";
 import { NewUserButton } from "@/components/admin/new-user-button";
 

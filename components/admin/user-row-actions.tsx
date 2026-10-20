@@ -5,7 +5,7 @@ import { ActionsMenu, ActionsMenuItem } from "@/components/ui/actions-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EditPermissionsDialog } from "@/components/admin/edit-permissions-dialog";
 import { useToast } from "@/components/ui/toast/toast-context";
-import { deactivateUser, deleteUser, resendInvite } from "@/lib/actions/users";
+import { deactivateUser, deleteUser, resendInvite } from "@/lib/api/users";
 import { ShieldIcon, ForwardIcon, UserOffIcon, TrashIcon } from "@/components/icons";
 import type { AdminUser, AdminMailbox } from "@/lib/types/admin";
 
@@ -23,16 +23,18 @@ export function UserRowActions({
 
   async function handleDeactivate() {
     setPending("deactivate");
-    await deactivateUser(user.id);
+    const result = await deactivateUser(user.id);
     setPending(null);
-    showToast("success", `${user.name} fue desactivado.`);
+    if (result.ok) showToast("success", `${user.name} fue desactivado.`);
+    else showToast("error", result.error.message);
   }
 
   async function handleResend() {
     setPending("resend");
-    await resendInvite(user.id);
+    const result = await resendInvite(user.id);
     setPending(null);
-    showToast("success", `Invitación reenviada a ${user.email}.`);
+    if (result.ok) showToast("success", `Invitación reenviada a ${user.email}.`);
+    else showToast("error", result.error.message);
   }
 
   async function handleDelete() {
@@ -43,7 +45,7 @@ export function UserRowActions({
     if (result.ok) {
       showToast("success", `${user.name} fue eliminado.`);
     } else {
-      showToast("error", "No pudimos eliminar el usuario. Intentá de nuevo.");
+      showToast("error", result.error.message);
     }
   }
 

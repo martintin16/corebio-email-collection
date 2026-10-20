@@ -7,7 +7,7 @@ import { ReconnectMailboxDialog } from "@/components/admin/reconnect-mailbox-dia
 import { EditMailboxNameDialog } from "@/components/admin/edit-mailbox-name-dialog";
 import { MailboxUsersDialog } from "@/components/admin/mailbox-users-dialog";
 import { useToast } from "@/components/ui/toast/toast-context";
-import { disconnectMailbox } from "@/lib/actions/mailboxes";
+import { disconnectMailbox } from "@/lib/api/mailboxes";
 import { PlugIcon, EditIcon, ShieldIcon, TrashIcon } from "@/components/icons";
 import type { AdminMailbox } from "@/lib/types/admin";
 
@@ -27,7 +27,7 @@ export function MailboxRowActions({ mailbox }: { mailbox: AdminMailbox }) {
     if (result.ok) {
       showToast("success", `${mailbox.email} fue desconectada.`);
     } else {
-      showToast("error", "No pudimos desconectar la casilla. Intentá de nuevo.");
+      showToast("error", result.error.message);
     }
   }
 

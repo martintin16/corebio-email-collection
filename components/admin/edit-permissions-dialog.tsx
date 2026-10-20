@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast/toast-context";
-import { updateUserPermissions } from "@/lib/actions/users";
+import { updateUserPermissions } from "@/lib/api/users";
 import { editPermissionsSchema, type EditPermissionsFormValues } from "@/lib/validations/admin";
 import type { AdminUser, AdminMailbox } from "@/lib/types/admin";
 import { cn } from "@/lib/utils";
@@ -71,7 +71,8 @@ export function EditPermissionsDialog({
     setFormError(null);
     const result = await updateUserPermissions(user.id, values);
     if (!result.ok) {
-      setFormError("No pudimos guardar los cambios. Intentá de nuevo.");
+      // Ej. 409: un admin no puede quitarse el rol a sí mismo.
+      setFormError(result.error.message);
       return;
     }
     showToast("success", `Permisos de ${user.name} actualizados.`);

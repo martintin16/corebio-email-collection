@@ -12,7 +12,12 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { FormField } from "@/components/ui/form-field";
 
-export function LoginForm() {
+/** Solo rutas internas ("/algo"), nunca otro sitio ("//otro.com", "https://…"). */
+function safeNext(next: string | undefined): string {
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/inbox";
+}
+
+export function LoginForm({ next }: { next?: string }) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -38,7 +43,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/inbox");
+    router.push(safeNext(next));
     router.refresh();
   }
 

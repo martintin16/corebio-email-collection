@@ -9,7 +9,12 @@ export const metadata: Metadata = {
 // Server Component por defecto: solo el <LoginForm /> necesita
 // interactividad (RHF, estado del ojito), así que es el único
 // pedazo marcado "use client".
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  // A dónde volver después de iniciar sesión (lo pone el middleware).
+  searchParams: { next?: string };
+}) {
   return (
     <div className="w-full max-w-[340px] rounded-lg border border-gray-200 bg-white p-7 shadow-sm">
       <div className="mb-1 flex items-center gap-2">
@@ -22,7 +27,7 @@ export default function LoginPage() {
         Acceso para miembros de la comisión
       </p>
 
-      <LoginForm />
+      <LoginForm next={searchParams.next} />
     </div>
   );
 }

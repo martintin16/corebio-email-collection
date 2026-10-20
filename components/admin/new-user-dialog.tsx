@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { useToast } from "@/components/ui/toast/toast-context";
-import { createUser } from "@/lib/actions/users";
+import { createUser } from "@/lib/api/users";
 import { newUserSchema, type NewUserFormValues } from "@/lib/validations/admin";
 import type { AdminMailbox } from "@/lib/types/admin";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,8 @@ export function NewUserDialog({ open, onClose, mailboxes }: NewUserDialogProps) 
     setFormError(null);
     const result = await createUser(values);
     if (!result.ok) {
-      setFormError("No pudimos invitar al usuario. Intentá de nuevo.");
+      // Ej. 409: ya existe un usuario con ese email.
+      setFormError(result.error.message);
       return;
     }
     showToast("success", `Invitación enviada a ${values.email}.`);

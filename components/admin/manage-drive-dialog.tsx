@@ -8,12 +8,11 @@ import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { useToast } from "@/components/ui/toast/toast-context";
 import { FolderIcon, FileTextIcon, ChevronDownIcon } from "@/components/icons";
 import {
-  getDriveRootFolder,
   getDriveFolderContents,
   getDriveSharedItemIds,
+  updateDriveAccess,
 } from "@/lib/api/drive";
-import { updateDriveAccess } from "@/lib/actions/drive";
-import type { DriveItem } from "@/lib/types/drive";
+import { DRIVE_ROOT, type DriveAccessFailure, type DriveItem } from "@/lib/types/drive";
 import type { AdminMailbox, AdminUser } from "@/lib/types/admin";
 import { cn } from "@/lib/utils";
 
@@ -40,11 +39,12 @@ export function ManageDriveDialog({
   user,
 }: ManageDriveDialogProps) {
   const { showToast } = useToast();
-  const [path, setPath] = useState<Crumb[]>([getDriveRootFolder()]);
+  const [path, setPath] = useState<Crumb[]>([DRIVE_ROOT]);
   const [state, setState] = useState<"loading" | "loaded" | "error">("loading");
   const [items, setItems] = useState<DriveItem[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [failures, setFailures] = useState<DriveAccessFailure[]>([]);
   // "Reintentar" solo necesita disparar el mismo efecto de abajo de nuevo,
   // no una copia de su lógica — así no se le puede olvidar el guard de
   // "cancelled" y quedar pisado por una respuesta vieja si la persona ya
@@ -59,15 +59,17 @@ export function ManageDriveDialog({
   // persona u otra casilla.
   useEffect(() => {
     if (!open) return;
-    setPath([getDriveRootFolder()]);
-    getDriveSharedItemIds(mailbox.id).then((ids) => setSelected(new Set(ids)));
+    setPath([DRIVE_ROOT]);
+    getDriveSharedItemIds(mailbox.id, user.id)
+      .then((ids) => setSelected(new Set(ids)))
+      .catch(() => setState("error"));
   }, [open, mailbox.id]);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setState("loading");
-    getDriveFolderContents(mailbox.id, currentFolder.id)
+    getDriveFolderContents(mailbox.id, currentFolder.id, user.id)
       .then((data) => {
         if (cancelled) return;
         setItems(data);
@@ -105,12 +107,23 @@ export function ManageDriveDialog({
 
   async function handleSave() {
     setSaving(true);
+    setFailures([]);
     try {
-      await updateDriveAccess({
+      const result = await updateDriveAccess({
         mailboxId: mailbox.id,
         userId: user.id,
         itemIds: Array.from(selected),
       });
+      if (!result.ok) {
+        showToast("error", result.error.message);
+        return;
+      }
+      // Cada ítem se aplica por separado: si alguno falló, el resto ya quedó
+      // aplicado y se muestra cuáles no, sin cerrar.
+      if (result.data.failed.length > 0) {
+        setFailures(result.data.failed);
+        return;
+      }
       showToast("success", `Acceso a Drive de ${user.name} actualizado.`);
       onClose();
     } catch {
@@ -199,9 +212,12 @@ export function ManageDriveDialog({
                       isSelected && "bg-primary-100/40",
                     )}
                   >
+                    {/* Ya tiene acceso por una carpeta compartida: no hay nada que
+                        tildar acá (se quita dejando de compartir la carpeta). */}
                     <input
                       type="checkbox"
-                      checked={isSelected}
+                      checked={isSelected || item.inherited}
+                      disabled={item.inherited && !isSelected}
                       onChange={() => toggleSelected(item.id)}
                       aria-label={`Compartir ${item.name}`}
                     />
@@ -224,6 +240,7 @@ export function ManageDriveDialog({
                       </span>
                     )}
                     {item.shared && <Badge tone="success">Compartido</Badge>}
+                    {!item.shared && item.inherited && <Badge>Por carpeta</Badge>}
                     {item.type === "folder" && (
                       <ChevronDownIcon className="h-3 w-3 shrink-0 -rotate-90 text-gray-300" />
                     )}
@@ -233,6 +250,22 @@ export function ManageDriveDialog({
             </ul>
           )}
         </div>
+
+        {failures.length > 0 && (
+          <div
+            role="alert"
+            className="mt-3 rounded-md border border-red-200 bg-danger-bg px-3 py-2 text-xs text-danger-text"
+          >
+            <p className="mb-1 font-medium">Esto no se pudo cambiar (lo demás sí se guardó):</p>
+            <ul className="list-disc pl-4">
+              {failures.map((f) => (
+                <li key={f.id}>
+                  {f.name ?? f.id}: {f.reason}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="mt-3 flex items-center justify-between">
           <span className="text-xs text-gray-500">

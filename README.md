@@ -382,34 +382,27 @@ lib/api/
 
 ## Setup para correrlo y probarlo
 
-`npm install && npm run dev` no alcanza solo: el login pega de verdad contra Supabase Auth (es lo único que
-nunca estuvo mockeado — todo lo demás sí lo está). Pasos completos:
+El front necesita el backend corriendo (repo `corebio-email-backend`): ya no hay datos mock.
 
 1. **Node 18.18+ o 20+** (lo que pide Next 14.2).
 2. `npm install`.
-3. Crear un proyecto en Supabase (ya tenés cuenta) si todavía no tenés uno para este proyecto.
-4. `cp .env.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` —
-   están en Project Settings → API de tu proyecto de Supabase.
-5. **Crear al menos un usuario a mano** en el dashboard de Supabase (Authentication → Users → Add user, con
-   email + contraseña). Esto es necesario porque "Nuevo usuario" en el panel de admin todavía es mock — no
-   crea la cuenta real en Supabase, así que sin este paso no hay con qué loguearse.
-6. Si querés ver las pantallas de `/admin` (Usuarios, Casillas), a ese usuario hay que asignarle el rol a
-   mano: en el SQL Editor de Supabase,
-   ```sql
-   update auth.users
-   set raw_app_meta_data = raw_app_meta_data || '{"role": "admin"}'
-   where email = 'tu-email@ejemplo.com';
-   ```
-   Sin esto, `lib/auth/session.ts` lo trata como `role: "user"` por default y el middleware te redirige de
-   `/admin` a `/inbox`. Esto es un parche manual para poder probar — el mecanismo real (un Auth Hook que
-   calcule el rol automáticamente al loguearse) todavía no está armado, queda para el backend.
-7. `npm run dev` y entrar con ese email/contraseña.
-
-**Qué vas a poder probar de verdad:** login real (con ese usuario), logout, y toda la navegación /
-formularios / modales / estados del resto de la app. **Qué vas a ver pero no es real todavía:** los mensajes
-del inbox, los usuarios y casillas de `/admin`, y cualquier alta/baja/edición ahí — son todos datos mock en
-`lib/api/` que vuelven a su estado inicial cada vez que reiniciás el servidor (no hay ninguna base de datos
-detrás todavía, eso es justamente el backend que sigue).
+3. `cp .env.example .env.local` y completar:
+   - `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Project Settings → API de Supabase).
+   - `NEXT_PUBLIC_API_URL`: `http://localhost:4000` con el backend local (`npm run start:dev` en ese
+     repo). En el backend, `CORS_ORIGINS` tiene que incluir `http://localhost:3000`.
+4. **El primer admin se crea a mano** (después, el resto se invita desde Admin → Usuarios):
+   1. Supabase → Authentication → Users → Add user (email + contraseña).
+   2. En el SQL Editor, darle el rol en los dos lugares (la base, que es la que manda en el backend,
+      y `app_metadata`, que usa el middleware del front para mostrar `/admin`):
+      ```sql
+      update public.user_profiles set role = 'admin', status = 'active'
+      where id = (select id from auth.users where email = 'tu-email@ejemplo.com');
+      update auth.users
+      set raw_app_meta_data = raw_app_meta_data || '{"role": "admin"}'
+      where email = 'tu-email@ejemplo.com';
+      ```
+5. `npm run dev` y entrar con ese usuario. Desde Admin → Casillas se conectan las casillas con Google y
+   desde Admin → Usuarios se invita al resto y se asignan los permisos por casilla.
 
 ## Admin: Usuarios y Casillas
 
@@ -583,9 +576,10 @@ Todo con datos mock (`lib/api/labels.ts`, `lib/api/contacts.ts`); la integració
 
 ## Pendiente
 
-Todo lo que queda es explícitamente responsabilidad del backend, no front sin terminar: el envío/recepción
-real de mails (Gmail API), la persistencia real detrás de cada Server Action en `lib/actions/` y función en
-`lib/api/` (hoy todas mockeadas con un `delay()` — ver los `TODO` en cada archivo), y el Auth Hook de
-Supabase que calcula el rol real (`lib/auth/session.ts` ya asume su forma pero no existe todavía). El
-frontend cubre todas las vistas, componentes y estados del PDF de especificación aprobado, con cada acción
-del flujo llevando a algo real — lo que sigue es construir ese backend en NestJS.
+El front ya está conectado al backend real (ver "Conexión con el backend"). Queda:
+
+- **Deploy**: backend en Railway y `NEXT_PUBLIC_API_URL` de producción en Vercel. Esta conexión no se pasa a
+  `main` hasta que el backend esté publicado (si no, la versión de Vercel queda sin backend).
+- Opcional: sumar "Otros contactos" al autocompletado de "Para" buscando con `searchContacts(mailboxId, q)`
+  (con ~300 ms de espera después de tipear), y filtrar por etiqueta desde Gmail (`?labelId=`) en vez de
+  sobre los mensajes ya cargados.
