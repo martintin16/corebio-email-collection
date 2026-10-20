@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,9 +12,12 @@ import { useToast } from "@/components/ui/toast/toast-context";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { useComposeBlocking } from "@/components/compose/compose-blocking-context";
 import { RichTextEditor } from "@/components/compose/rich-text-editor";
+import { RecipientInput, type RecipientInputHandle } from "@/components/compose/recipient-input";
 import { TemplatePicker } from "@/components/compose/template-picker";
 import { SendSplitButton } from "@/components/compose/send-split-button";
 import { htmlToPlainText } from "@/lib/utils";
+import { parseRecipients } from "@/lib/recipients";
+import type { PickedGroup } from "@/lib/types/contact";
 import { scheduleMessage } from "@/lib/actions/schedule";
 import { formatScheduledAt } from "@/lib/schedule-options";
 
@@ -58,6 +61,8 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
     defaultValues: {
       mailboxId: initialValues?.mailboxId ?? mailboxes[0]?.id ?? "",
       to: initialValues?.to ?? "",
+      cc: "",
+      bcc: "",
       subject: initialValues?.subject ?? "",
       body: initialValues?.body ?? "",
     },
@@ -67,6 +72,31 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
   // escrito antes de insertar una (para poder confirmar el reemplazo).
   const selectedMailboxId = useWatch({ control, name: "mailboxId" });
   const bodyValue = useWatch({ control, name: "body" });
+  const [toValue, ccValue, bccValue] = useWatch({ control, name: ["to", "cc", "bcc"] });
+  const recipientCount =
+    parseRecipients(toValue ?? "").length +
+    parseRecipients(ccValue ?? "").length +
+    parseRecipients(bccValue ?? "").length;
+
+  // Cc y Cco arrancan ocultos, como en Gmail. Los dos campos siguen montados
+  // aunque estén ocultos, para poder mandarle grupos a Cco desde "Para".
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
+  const bccRef = useRef<RecipientInputHandle>(null);
+
+  // Un grupo elegido en "Para" va a Cco: así sus miembros no ven los mails
+  // de los demás. Es lo que pide la privacidad por defecto; si alguien
+  // quiere el grupo a la vista, lo puede elegir directamente en Cc.
+  function sendGroupsToBcc(groups: PickedGroup[]) {
+    setShowBcc(true);
+    bccRef.current?.addGroups(groups);
+    showToast(
+      "success",
+      groups.length === 1
+        ? `"${groups[0]?.name}" se agregó en Cco para que no se vean entre sí.`
+        : "Los grupos se agregaron en Cco para que no se vean entre sí."
+    );
+  }
   const hasBodyContent = htmlToPlainText(bodyValue ?? "").length > 0;
 
   function handleAttach(e: ChangeEvent<HTMLInputElement>) {
@@ -106,6 +136,8 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
       await scheduleMessage({
         mailboxId: values.mailboxId,
         to: values.to,
+        cc: values.cc,
+        bcc: values.bcc,
         subject: values.subject,
         body: values.body,
         scheduledAt: date.toISOString(),
@@ -177,19 +209,103 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
           <label htmlFor="to" className="w-14 shrink-0 text-xs text-gray-500">
             Para
           </label>
-          <input
-            id="to"
-            type="email"
-            placeholder="nombre@mail.com"
-            className={rowInputClass}
-            aria-invalid={!!errors.to}
-            aria-describedby={errors.to ? "to-error" : undefined}
-            {...register("to")}
+          <Controller
+            control={control}
+            name="to"
+            render={({ field }) => (
+              <RecipientInput
+                id="to"
+                onGroupsPicked={sendGroupsToBcc}
+                mailboxId={selectedMailboxId}
+                value={field.value}
+                onChange={field.onChange}
+                invalid={!!errors.to}
+                describedBy={errors.to ? "to-error" : undefined}
+              />
+            )}
           />
+          <div className="flex shrink-0 gap-2 text-xs text-gray-500">
+            {!showCc && (
+              <button type="button" onClick={() => setShowCc(true)} className="hover:text-gray-800 hover:underline">
+                Cc
+              </button>
+            )}
+            {!showBcc && (
+              <button type="button" onClick={() => setShowBcc(true)} className="hover:text-gray-800 hover:underline">
+                Cco
+              </button>
+            )}
+          </div>
         </div>
         {errors.to && (
           <p id="to-error" role="alert" className="pl-[68px] text-xs text-danger">
             {errors.to.message}
+          </p>
+        )}
+
+        <div className={showCc ? undefined : "hidden"}>
+          <div className={rowClass}>
+            <label htmlFor="cc" className="w-14 shrink-0 text-xs text-gray-500">
+              Cc
+            </label>
+            <Controller
+              control={control}
+              name="cc"
+              render={({ field }) => (
+                <RecipientInput
+                  id="cc"
+                  mailboxId={selectedMailboxId}
+                  value={field.value}
+                  onChange={field.onChange}
+                  invalid={!!errors.cc}
+                  describedBy={errors.cc ? "cc-error" : undefined}
+                  placeholder="Con copia visible para todos"
+                />
+              )}
+            />
+          </div>
+          {errors.cc && (
+            <p id="cc-error" role="alert" className="pl-[68px] text-xs text-danger">
+              {errors.cc.message}
+            </p>
+          )}
+        </div>
+
+        <div className={showBcc ? undefined : "hidden"}>
+          <div className={rowClass}>
+            <label htmlFor="bcc" className="w-14 shrink-0 text-xs text-gray-500">
+              Cco
+            </label>
+            <Controller
+              control={control}
+              name="bcc"
+              render={({ field }) => (
+                <RecipientInput
+                  ref={bccRef}
+                  id="bcc"
+                  mailboxId={selectedMailboxId}
+                  value={field.value}
+                  onChange={field.onChange}
+                  invalid={!!errors.bcc}
+                  describedBy={errors.bcc ? "bcc-error" : "bcc-hint"}
+                  placeholder="Copia oculta"
+                />
+              )}
+            />
+          </div>
+          {errors.bcc ? (
+            <p id="bcc-error" role="alert" className="pl-[68px] text-xs text-danger">
+              {errors.bcc.message}
+            </p>
+          ) : (
+            <p id="bcc-hint" className="pb-1.5 pl-[68px] text-xs text-gray-400">
+              Quienes estén en Cco no se ven entre sí ni aparecen para el resto.
+            </p>
+          )}
+        </div>
+        {recipientCount > 1 && (
+          <p className="py-1 text-right text-xs text-gray-400" aria-live="polite">
+            {recipientCount} destinatarios
           </p>
         )}
 
