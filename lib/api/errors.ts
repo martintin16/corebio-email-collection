@@ -43,9 +43,7 @@ export class ApiError extends Error {
  * el error: en producción Next oculta el mensaje de los errores que viajan del
  * servidor al navegador, y el formulario necesita el texto real del backend.
  */
-export type ActionResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: ApiErrorInfo };
+export type ActionResult<T = void> = { ok: true; data: T } | { ok: false; error: ApiErrorInfo };
 
 /** Mensaje si el backend no mandó uno (o no se pudo leer). */
 const FALLBACK_MESSAGES: Record<number, string> = {
@@ -67,18 +65,11 @@ export async function apiErrorFrom(res: Response): Promise<ApiError> {
   let body: Record<string, unknown> = {};
   try {
     const parsed: unknown = await res.json();
-    if (parsed && typeof parsed === "object")
-      body = parsed as Record<string, unknown>;
+    if (parsed && typeof parsed === "object") body = parsed as Record<string, unknown>;
   } catch {
     // Sin cuerpo JSON (ej. un proxy cortó la conexión): se usa el mensaje por defecto.
   }
-  const {
-    message,
-    code,
-    statusCode: _statusCode,
-    error: _error,
-    ...details
-  } = body;
+  const { message, code, statusCode: _statusCode, error: _error, ...details } = body;
   // Las validaciones pueden venir como lista de mensajes.
   const text = Array.isArray(message)
     ? message.filter((m) => typeof m === "string").join(". ")
@@ -98,16 +89,12 @@ export function networkError(): ApiError {
   return new ApiError({
     status: 0,
     code: "NETWORK_ERROR",
-    message:
-      "No pudimos conectarnos con el servidor. Revisá tu conexión e intentá de nuevo.",
+    message: "No pudimos conectarnos con el servidor. Revisá tu conexión e intentá de nuevo.",
     details: {},
   });
 }
 
 /** La casilla necesita reconectarse con Google (token vencido o falta un permiso). */
 export function isReconnectError(error: { code?: string }): boolean {
-  return (
-    error.code === "mailbox_needs_reconnect" ||
-    error.code === "mailbox_missing_scope"
-  );
+  return error.code === "mailbox_needs_reconnect" || error.code === "mailbox_missing_scope";
 }

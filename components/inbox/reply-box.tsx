@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PaperclipIcon, XIcon } from "@/components/icons";
 import { RichTextEditor } from "@/components/compose/rich-text-editor";
@@ -8,7 +9,8 @@ import { SendSplitButton } from "@/components/compose/send-split-button";
 import { useToast } from "@/components/ui/toast/toast-context";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { htmlToPlainText } from "@/lib/utils";
-import { scheduleMessage } from "@/lib/actions/schedule";
+import { replyToMessage } from "@/lib/api/messages.browser";
+import { scheduleMessage } from "@/lib/api/scheduled-messages.browser";
 import { formatScheduledAt } from "@/lib/schedule-options";
 
 interface ReplyBoxProps {
@@ -20,8 +22,10 @@ interface ReplyBoxProps {
 }
 
 export function ReplyBox({ mailboxId, messageId, replyToName, replyToEmail, subject }: ReplyBoxProps) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
@@ -49,6 +53,15 @@ export function ReplyBox({ mailboxId, messageId, replyToName, replyToEmail, subj
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function reset() {
+    setOpen(false);
+    setBody("");
+    setAttachments([]);
+    setSendError(null);
+    // Enviados y Programados se cargan en el servidor: que aparezca lo nuevo.
+    router.refresh();
+  }
+
   async function handleSend() {
     setPendingAction("send");
     if (isEmpty) {
@@ -56,15 +69,21 @@ export function ReplyBox({ mailboxId, messageId, replyToName, replyToEmail, subj
       return;
     }
     setBodyError(false);
+    setSendError(null);
     setSending(true);
-    // TODO: POST real a `/mailboxes/${mailboxId}/messages/${messageId}/reply`
-    // en el backend, mandando `body` (HTML) + `attachments` como multipart/form-data.
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setSending(false);
-    setOpen(false);
-    setBody("");
-    setAttachments([]);
-    showToast("success", "Respuesta enviada.");
+    try {
+      const result = await replyToMessage(mailboxId, messageId, body, attachments);
+      if (!result.ok) {
+        setSendError(result.error.message);
+        return;
+      }
+      reset();
+      showToast("success", "Respuesta enviada.");
+    } catch {
+      setSendError("No pudimos enviar la respuesta. Intentá de nuevo.");
+    } finally {
+      setSending(false);
+    }
   }
 
   async function handleSchedule(date: Date) {
@@ -74,23 +93,28 @@ export function ReplyBox({ mailboxId, messageId, replyToName, replyToEmail, subj
       return;
     }
     setBodyError(false);
+    setSendError(null);
     setSending(true);
     try {
-      await scheduleMessage({
-        mailboxId,
-        to: replyToEmail,
-        subject: subject.startsWith("Re:") ? subject : `Re: ${subject}`,
-        body,
-        scheduledAt: date.toISOString(),
-      });
-      setOpen(false);
-      setBody("");
-      setAttachments([]);
+      // Respuesta programada: el backend toma destinatario, asunto e hilo del
+      // mensaje original (igual que Responder).
+      const result = await scheduleMessage(
+        { mailboxId, replyToMessageId: messageId, body, scheduledAt: date.toISOString() },
+        attachments
+      );
+      if (!result.ok) {
+        setSendError(result.error.message);
+        return;
+      }
+      reset();
       showToast("success", `Se enviará ${formatScheduledAt(date)}.`);
+    } catch {
+      setSendError("No pudimos programar el envío. Intentá de nuevo.");
     } finally {
       setSending(false);
     }
   }
+
 
   const isEmpty = htmlToPlainText(body).length === 0;
 
@@ -126,6 +150,11 @@ export function ReplyBox({ mailboxId, messageId, replyToName, replyToEmail, subj
           describedBy={bodyError ? "reply-body-error" : undefined}
         />
       </div>
+      {sendError && (
+        <p role="alert" className="px-3.5 pb-1 text-xs text-danger">
+          {sendError}
+        </p>
+      )}
       {bodyError && (
         <p id="reply-body-error" role="alert" className="px-3.5 pb-1 text-xs text-danger">
           Escribí una respuesta antes de {pendingAction === "schedule" ? "programar el envío" : "enviar"}.

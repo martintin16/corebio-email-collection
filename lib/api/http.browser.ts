@@ -1,11 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { apiUrl } from "./config";
-import {
-  ApiError,
-  apiErrorFrom,
-  networkError,
-  type ActionResult,
-} from "./errors";
+import { ApiError, apiErrorFrom, networkError, type ActionResult } from "./errors";
 
 /**
  * Pedidos al backend DESDE EL NAVEGADOR. Solo para lo que lleva archivos
@@ -24,11 +19,7 @@ async function authHeader(): Promise<Record<string, string>> {
   return session ? { Authorization: `Bearer ${session.access_token}` } : {};
 }
 
-async function send(
-  method: "POST" | "PATCH",
-  path: string,
-  form: FormData,
-): Promise<Response> {
+async function send(method: "POST" | "PATCH", path: string, form: FormData): Promise<Response> {
   let res: Response;
   try {
     // Sin Content-Type: el navegador lo arma con el boundary del multipart.
@@ -49,7 +40,7 @@ async function send(
 export async function sendForm<T>(
   method: "POST" | "PATCH",
   path: string,
-  form: FormData,
+  form: FormData
 ): Promise<ActionResult<T>> {
   try {
     const res = await send(method, path, form);
@@ -68,10 +59,7 @@ export async function sendForm<T>(
  * JSON (el backend los acepta así), y los archivos en `attachments`.
  * Los `undefined` no se mandan.
  */
-export function toFormData(
-  fields: Record<string, unknown>,
-  files: File[] = [],
-): FormData {
+export function toFormData(fields: Record<string, unknown>, files: File[] = []): FormData {
   const form = new FormData();
   for (const [key, value] of Object.entries(fields)) {
     if (value === undefined) continue;
@@ -96,8 +84,7 @@ export async function downloadFile(path: string): Promise<ActionResult> {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download =
-    filenameFrom(res.headers.get("Content-Disposition")) ?? "adjunto";
+  link.download = filenameFrom(res.headers.get("Content-Disposition")) ?? "adjunto";
   document.body.appendChild(link);
   link.click();
   link.remove();

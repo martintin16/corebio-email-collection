@@ -12,18 +12,15 @@ import { normalizeText } from "@/lib/recipients";
  * `code: "TEMPLATE_NAME_TAKEN"`.
  */
 
-const base = (mailboxId: string) =>
-  `/mailboxes/${encodeURIComponent(mailboxId)}/templates`;
+const base = (mailboxId: string) => `/mailboxes/${encodeURIComponent(mailboxId)}/templates`;
 
-export async function getTemplatesForMailbox(
-  mailboxId: string,
-): Promise<MessageTemplate[]> {
+export async function getTemplatesForMailbox(mailboxId: string): Promise<MessageTemplate[]> {
   return http.get(base(mailboxId));
 }
 
 export async function createTemplate(
   mailboxId: string,
-  input: TemplateInput,
+  input: TemplateInput
 ): Promise<ActionResult<MessageTemplate>> {
   return http.action(() => http.post<MessageTemplate>(base(mailboxId), input));
 }
@@ -31,23 +28,15 @@ export async function createTemplate(
 export async function updateTemplate(
   mailboxId: string,
   templateId: string,
-  input: Partial<TemplateInput>,
+  input: Partial<TemplateInput>
 ): Promise<ActionResult<MessageTemplate>> {
   return http.action(() =>
-    http.patch<MessageTemplate>(
-      `${base(mailboxId)}/${encodeURIComponent(templateId)}`,
-      input,
-    ),
+    http.patch<MessageTemplate>(`${base(mailboxId)}/${encodeURIComponent(templateId)}`, input)
   );
 }
 
-export async function deleteTemplate(
-  mailboxId: string,
-  templateId: string,
-): Promise<ActionResult> {
-  return http.action(() =>
-    http.del(`${base(mailboxId)}/${encodeURIComponent(templateId)}`),
-  );
+export async function deleteTemplate(mailboxId: string, templateId: string): Promise<ActionResult> {
+  return http.action(() => http.del(`${base(mailboxId)}/${encodeURIComponent(templateId)}`));
 }
 
 /**
@@ -56,7 +45,7 @@ export async function deleteTemplate(
  */
 export async function duplicateTemplate(
   mailboxId: string,
-  source: MessageTemplate,
+  source: MessageTemplate
 ): Promise<ActionResult<MessageTemplate>> {
   return http.action(async () => {
     const existing = await http.get<MessageTemplate[]>(base(mailboxId));

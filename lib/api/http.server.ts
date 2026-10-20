@@ -1,12 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { apiUrl } from "./config";
-import {
-  ApiError,
-  apiErrorFrom,
-  networkError,
-  type ActionResult,
-} from "./errors";
+import { ApiError, apiErrorFrom, networkError, type ActionResult } from "./errors";
 
 /**
  * Pedidos al backend desde el servidor de Next (pages y acciones de
@@ -27,11 +22,7 @@ async function accessToken(): Promise<string | null> {
   return session?.access_token ?? null;
 }
 
-async function request<T>(
-  method: Method,
-  path: string,
-  body?: unknown,
-): Promise<T> {
+async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
   const token = await accessToken();
   let res: Response;
   try {
@@ -67,12 +58,9 @@ export async function get<T>(path: string): Promise<T> {
 }
 
 /** Escrituras: lanzan ApiError (las acciones lo convierten con `action`). */
-export const post = <T>(path: string, body?: unknown) =>
-  request<T>("POST", path, body ?? {});
-export const patch = <T>(path: string, body: unknown) =>
-  request<T>("PATCH", path, body);
-export const put = <T>(path: string, body: unknown) =>
-  request<T>("PUT", path, body);
+export const post = <T>(path: string, body?: unknown) => request<T>("POST", path, body ?? {});
+export const patch = <T>(path: string, body: unknown) => request<T>("PATCH", path, body);
+export const put = <T>(path: string, body: unknown) => request<T>("PUT", path, body);
 export const del = (path: string) => request<void>("DELETE", path);
 
 /**
@@ -80,9 +68,7 @@ export const del = (path: string) => request<void>("DELETE", path);
  * en vez de lanzar (ver ActionResult). Otros errores (ej. un `redirect`) siguen
  * de largo.
  */
-export async function action<T>(
-  run: () => Promise<T>,
-): Promise<ActionResult<T>> {
+export async function action<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
   try {
     return { ok: true, data: await run() };
   } catch (err) {

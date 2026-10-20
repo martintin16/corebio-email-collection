@@ -18,7 +18,9 @@ import { SendSplitButton } from "@/components/compose/send-split-button";
 import { htmlToPlainText } from "@/lib/utils";
 import { parseRecipients } from "@/lib/recipients";
 import type { PickedGroup } from "@/lib/types/contact";
-import { scheduleMessage } from "@/lib/actions/schedule";
+import type { AttachmentInfo } from "@/lib/types/mail";
+import { sendMessage } from "@/lib/api/messages.browser";
+import { scheduleMessage, updateScheduledMessage } from "@/lib/api/scheduled-messages.browser";
 import { formatScheduledAt } from "@/lib/schedule-options";
 
 interface ComposeFormProps {
@@ -31,20 +33,44 @@ interface ComposeFormProps {
   initialValues?: {
     mailboxId: string;
     to: string;
+    cc?: string;
+    bcc?: string;
     subject: string;
     body: string;
   };
+  // Si viene, "Enviar" y "Programar" editan ese envío programado en vez de crear uno.
+  editingScheduledId?: string;
+  carriedAttachments?: CarriedAttachments;
 }
+
+/**
+ * Adjuntos que no se suben desde la compu: los del mensaje que se reenvía
+ * (`forward`) o los que ya tiene el programado que se edita (`keep`). Se
+ * muestran como chips y se pueden quitar.
+ */
+export type CarriedAttachments =
+  | { kind: "forward"; messageId: string; attachments: AttachmentInfo[] }
+  | { kind: "keep"; attachments: AttachmentInfo[] };
+
+/** "Enviar" un programado que se está editando: lo antes que acepta el backend (1 minuto). */
+const SEND_NOW_DELAY_MS = 75_000;
 
 const rowClass =
   "flex items-center gap-3 border-b border-gray-200 py-2 last:border-b-0";
 const rowInputClass =
   "flex-1 border-none bg-transparent p-0 text-sm text-gray-900 outline-none placeholder:text-gray-400";
 
-export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps) {
+export function ComposeForm({
+  mailboxes,
+  mode,
+  initialValues,
+  editingScheduledId,
+  carriedAttachments,
+}: ComposeFormProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [carried, setCarried] = useState<AttachmentInfo[]>(carriedAttachments?.attachments ?? []);
   const [formError, setFormError] = useState<string | null>(null);
   // Distingue "enviar ya" de "programar" solo para el texto del overlay —
   // ambos caminos comparten el mismo isSubmitting de react-hook-form.
@@ -62,8 +88,8 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
     defaultValues: {
       mailboxId: initialValues?.mailboxId ?? mailboxes[0]?.id ?? "",
       to: initialValues?.to ?? "",
-      cc: "",
-      bcc: "",
+      cc: initialValues?.cc ?? "",
+      bcc: initialValues?.bcc ?? "",
       subject: initialValues?.subject ?? "",
       body: initialValues?.body ?? "",
     },
@@ -81,8 +107,8 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
 
   // Cc y Cco arrancan ocultos, como en Gmail. Los dos campos siguen montados
   // aunque estén ocultos, para poder mandarle grupos a Cco desde "Para".
-  const [showCc, setShowCc] = useState(false);
-  const [showBcc, setShowBcc] = useState(false);
+  const [showCc, setShowCc] = useState(Boolean(initialValues?.cc));
+  const [showBcc, setShowBcc] = useState(Boolean(initialValues?.bcc));
   const bccRef = useRef<RecipientInputHandle>(null);
 
   // Un grupo elegido en "Para" va a Cco: así sus miembros no ven los mails
@@ -111,18 +137,51 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function removeCarried(id: string) {
+    setCarried((prev) => prev.filter((a) => a.id !== id));
+  }
+
   function goBack() {
     if (mode === "modal") router.back();
     else router.push("/inbox");
+    // Las listas (Enviados, Programados) se cargan en el servidor: que se vean los cambios.
+    router.refresh();
+  }
+
+  /** Adjuntos del mensaje original que siguen en la lista (Reenviar). */
+  function forwardedRefs() {
+    if (carriedAttachments?.kind !== "forward") return undefined;
+    const { messageId } = carriedAttachments;
+    return carried.map((a) => ({ messageId, attachmentId: a.id }));
   }
 
   async function onSubmit(values: ComposeFormValues) {
     setFormError(null);
     setPendingAction("send");
+    // Editando un programado, "Enviar" lo adelanta: sale en la próxima vuelta
+    // del envío automático, con los adjuntos que ya tenía.
+    if (editingScheduledId) {
+      await saveScheduled(values, new Date(Date.now() + SEND_NOW_DELAY_MS), "Se enviará en un minuto.");
+      return;
+    }
     try {
-      // TODO: reemplazar por POST real a /mailboxes/:mailboxId/messages en
-      // el backend, mandando `values` + `attachments` como multipart/form-data.
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      const result = await sendMessage(
+        {
+          mailboxId: values.mailboxId,
+          to: values.to,
+          cc: values.cc,
+          bcc: values.bcc,
+          subject: values.subject,
+          body: values.body,
+          forwardedAttachments: forwardedRefs(),
+        },
+        attachments
+      );
+      if (!result.ok) {
+        // El backend ya manda el motivo en español (ej. cupo diario: "quedan N").
+        setFormError(result.error.message);
+        return;
+      }
       showToast("success", "Mensaje enviado.");
       goBack();
     } catch {
@@ -130,24 +189,41 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
     }
   }
 
-  async function onSchedule(values: ComposeFormValues, date: Date) {
-    setFormError(null);
-    setPendingAction("schedule");
+  async function saveScheduled(values: ComposeFormValues, date: Date, successMessage: string) {
+    const fields = {
+      to: values.to,
+      cc: values.cc,
+      bcc: values.bcc,
+      subject: values.subject,
+      body: values.body,
+      scheduledAt: date.toISOString(),
+    };
     try {
-      await scheduleMessage({
-        mailboxId: values.mailboxId,
-        to: values.to,
-        cc: values.cc,
-        bcc: values.bcc,
-        subject: values.subject,
-        body: values.body,
-        scheduledAt: date.toISOString(),
-      });
-      showToast("success", `Se enviará ${formatScheduledAt(date)}.`);
+      const result = editingScheduledId
+        ? await updateScheduledMessage(
+            editingScheduledId,
+            { ...fields, keepAttachmentIds: carried.map((a) => a.id) },
+            attachments
+          )
+        : await scheduleMessage(
+            { ...fields, mailboxId: values.mailboxId, forwardedAttachments: forwardedRefs() },
+            attachments
+          );
+      if (!result.ok) {
+        setFormError(result.error.message);
+        return;
+      }
+      showToast("success", successMessage);
       goBack();
     } catch {
       setFormError("No pudimos programar el envío. Intentá de nuevo.");
     }
+  }
+
+  async function onSchedule(values: ComposeFormValues, date: Date) {
+    setFormError(null);
+    setPendingAction("schedule");
+    await saveScheduled(values, date, `Se enviará ${formatScheduledAt(date)}.`);
   }
 
   // El botón "Programar" del menú dispara la misma validación que "Enviar"
@@ -160,7 +236,7 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
   // El overlay bloqueante solo tiene sentido cuando hay algo pesado en
   // vuelo (adjuntos): para un mail de puro texto, el spinner del botón ya
   // alcanza y bloquear toda la pantalla sería una interrupción de más.
-  const showBlockingOverlay = isSubmitting && attachments.length > 0;
+  const showBlockingOverlay = isSubmitting && attachments.length + carried.length > 0;
 
   // Si este form está dentro del modal de "Redactar", avisarle que no se
   // puede cerrar mientras el overlay de arriba está activo — si no,
@@ -371,8 +447,30 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
         </p>
       )}
 
-      {attachments.length > 0 && (
+      {attachments.length + carried.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
+          {carried.map((attachment) => (
+            <span
+              key={`carried-${attachment.id}`}
+              className="flex items-center gap-1.5 rounded-md bg-gray-100 py-1 pl-2.5 pr-1.5 text-xs text-gray-600"
+              title={
+                carriedAttachments?.kind === "forward"
+                  ? "Adjunto del mensaje original"
+                  : "Adjunto que ya tenía el envío"
+              }
+            >
+              <PaperclipIcon className="h-3 w-3 text-gray-400" />
+              {attachment.filename}
+              <button
+                type="button"
+                onClick={() => removeCarried(attachment.id)}
+                aria-label={`Quitar ${attachment.filename}`}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XIcon className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
           {attachments.map((file, i) => (
             <span
               key={`${file.name}-${i}`}

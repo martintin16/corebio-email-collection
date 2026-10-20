@@ -29,11 +29,7 @@ export function AttachmentList({
 
   async function download(attachment: AttachmentInfo) {
     setDownloadingId(attachment.id);
-    const result = await downloadMessageAttachment(
-      mailboxId,
-      messageId,
-      attachment.id,
-    );
+    const result = await downloadMessageAttachment(mailboxId, messageId, attachment.id);
     setDownloadingId(null);
     if (!result.ok) showToast("error", result.error.message);
   }
@@ -52,9 +48,7 @@ export function AttachmentList({
             <PaperclipIcon className="h-3.5 w-3.5 shrink-0 text-gray-400" />
             <span className="truncate">{attachment.filename}</span>
             <span className="shrink-0 text-gray-400">
-              {downloadingId === attachment.id
-                ? "Bajando…"
-                : formatSize(attachment.size)}
+              {downloadingId === attachment.id ? "Bajando…" : formatSize(attachment.size)}
             </span>
           </button>
         </li>
