@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useFloating, autoUpdate, offset, flip, shift, FloatingPortal } from "@floating-ui/react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,9 +20,9 @@ interface TemplatePickerProps {
 
 // Solo en Redactar, no en Responder — una plantilla institucional tiene
 // sentido para empezar un mensaje nuevo, no para contestar uno puntual.
-// Alcance de esta ronda: elegir e insertar una plantilla existente, no
-// crearlas ni editarlas (eso es otra funcionalidad, con su propia pantalla
-// de administración, que queda para más adelante).
+// Acá solo se elige e inserta una plantilla existente; crearlas, editarlas
+// y borrarlas se hace en la pantalla "Plantillas" (/templates), a la que
+// este menú enlaza.
 export function TemplatePicker({ mailboxId, hasContent, onInsert }: TemplatePickerProps) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<"idle" | "loading" | "loaded">("idle");
@@ -126,7 +127,16 @@ export function TemplatePicker({ mailboxId, hasContent, onInsert }: TemplatePick
             )}
             {state === "loaded" && templates.length === 0 && (
               <div className="px-3 py-4 text-center text-xs text-gray-400">
-                No hay plantillas para esta casilla.
+                Todavía no hay plantillas.{" "}
+                <Link
+                  href="/templates"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  role="menuitem"
+                  className="font-medium text-primary-700 hover:underline"
+                >
+                  Crear una ↗
+                </Link>
               </div>
             )}
             {state === "loaded" &&
@@ -142,6 +152,19 @@ export function TemplatePicker({ mailboxId, hasContent, onInsert }: TemplatePick
                   <div className="truncate text-[11px] text-gray-400">{tpl.preview}</div>
                 </button>
               ))}
+            {state === "loaded" && templates.length > 0 && (
+              // Abre en otra pestaña: así no se pierde el mensaje que se está
+              // escribiendo en Redactar.
+              <Link
+                href="/templates"
+                target="_blank"
+                rel="noopener noreferrer"
+                role="menuitem"
+                className="mt-1 block rounded-md border-t border-gray-200 px-2.5 py-2 text-xs font-medium text-primary-700 transition-colors hover:bg-gray-50"
+              >
+                Administrar plantillas ↗
+              </Link>
+            )}
           </div>
         </FloatingPortal>
       )}

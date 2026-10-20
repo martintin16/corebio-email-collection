@@ -69,9 +69,25 @@ mensaje nuevo, no para contestar uno puntual. Las plantillas son por casilla: al
 **Si ya había texto escrito**, insertar una plantilla no lo pisa en silencio — aparece un diálogo de
 confirmación (`Dialog` genérico, tono neutro, no destructivo) antes de reemplazar.
 
-**Decisión de alcance:** esta ronda cubre _usar_ plantillas, no _administrarlas_. Un CRUD para
-crear/editar plantillas (y quién puede hacerlo — ¿cualquier admin, un rol específico?) es una
-funcionalidad en sí misma y queda para una iteración futura.
+**Alcance:** este menú solo _usa_ plantillas. Crearlas, editarlas, duplicarlas y borrarlas se hace
+en la pantalla **Plantillas** (ver "Gestión de plantillas" más abajo), a la que el menú enlaza.
+
+## Gestión de plantillas (Anexo 4)
+
+Pantalla `/templates` ("Plantillas" en el menú lateral, para todos los usuarios — no es de Admin).
+
+- **Quién puede:** cualquier persona con acceso a la casilla crea, edita, duplica y borra sus plantillas
+  (supuesto de producto a confirmar con el backend). El borrado siempre pide confirmación y cada fila
+  muestra quién la editó por última vez, si el backend lo informa.
+- **Pantalla:** selector de casilla (oculto si hay una sola; recuerda la última elegida en la sesión),
+  lista ordenada por nombre con menú Editar / Duplicar / Eliminar, y estados de carga, vacío y error.
+- **Editor:** diálogo único para crear y editar (nombre hasta 60 caracteres, contenido con el mismo
+  `RichTextEditor` de Redactar). Valida nombre repetido en la casilla (también lo confirma el backend con
+  409), pide confirmar al cerrar con cambios sin guardar y no deja cerrar mientras guarda.
+- **Redactar:** el menú "Insertar plantilla" suma "Administrar plantillas ↗" (pestaña nueva, para no perder
+  el mensaje en curso) y, si no hay ninguna, "Crear una ↗".
+- **Mock:** `lib/api/templates.ts` guarda las plantillas en memoria de la pestaña, así que los cambios se
+  ven también en el menú de Redactar hasta recargar. Contrato propuesto en el brief, sección 6.8.
 
 ## Programar envío
 
