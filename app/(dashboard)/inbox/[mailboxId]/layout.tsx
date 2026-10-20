@@ -3,6 +3,7 @@ import { getMailboxesForCurrentUser, getMessages, getSentMessages } from "@/lib/
 import { getScheduledMessages } from "@/lib/api/scheduled-messages";
 import { MailboxListPanel } from "@/components/inbox/mailbox-list-panel";
 import { MailboxSplitView } from "@/components/inbox/mailbox-split-view";
+import { MailboxLabelsProvider } from "@/components/inbox/mailbox-labels-provider";
 
 export default async function MailboxLayout({
   children,
@@ -27,19 +28,23 @@ export default async function MailboxLayout({
     getScheduledMessages(mailbox.id),
   ]);
 
+  // key={mailbox.id}: al cambiar de casilla el proveedor de etiquetas se
+  // monta de cero (otro catálogo de etiquetas, el filtro vuelve a "Todas").
   return (
-    <MailboxSplitView
-      listPanel={
-        <MailboxListPanel
-          mailboxes={mailboxes}
-          mailbox={mailbox}
-          messages={messages}
-          sent={sent}
-          scheduled={scheduled}
-        />
-      }
-    >
-      {children}
-    </MailboxSplitView>
+    <MailboxLabelsProvider key={mailbox.id} mailboxId={mailbox.id}>
+      <MailboxSplitView
+        listPanel={
+          <MailboxListPanel
+            mailboxes={mailboxes}
+            mailbox={mailbox}
+            messages={messages}
+            sent={sent}
+            scheduled={scheduled}
+          />
+        }
+      >
+        {children}
+      </MailboxSplitView>
+    </MailboxLabelsProvider>
   );
 }

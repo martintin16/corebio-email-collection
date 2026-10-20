@@ -29,6 +29,7 @@ const MOCK_MESSAGES: Record<string, MessageDetail[]> = {
       body: "Buenas, quería confirmar la fecha de la próxima reunión de comisión directiva para coordinar la agenda con las residencias asociadas.\n\nQuedo atenta, saludos.",
       receivedAt: new Date().toISOString(),
       unread: true,
+      labelIds: ["lbl_salud"],
     },
     {
       id: "msg_2",
@@ -39,6 +40,18 @@ const MOCK_MESSAGES: Record<string, MessageDetail[]> = {
       body: "Nos gustaría coordinar un convenio de práctica para residentes con la comisión directiva de Corebio.",
       receivedAt: new Date(Date.now() - 86_400_000).toISOString(),
       unread: false,
+      labelIds: ["lbl_convenios", "lbl_urgente"],
+    },
+    {
+      id: "msg_3",
+      from: { name: "Juan Pérez", email: "juanperez@gmail.com" },
+      to: "secretaria@corebio.org",
+      subject: "Consulta sobre donación",
+      snippet: "Hola, quería saber cómo puedo hacer una donación mensual...",
+      body: "Hola, quería saber cómo puedo hacer una donación mensual a Corebio y si me pueden mandar un comprobante para presentar en mi trabajo.\n\nGracias.",
+      receivedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+      unread: false,
+      labelIds: [],
     },
   ],
 };

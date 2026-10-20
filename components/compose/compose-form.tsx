@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/toast/toast-context";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { useComposeBlocking } from "@/components/compose/compose-blocking-context";
 import { RichTextEditor } from "@/components/compose/rich-text-editor";
+import { RecipientInput } from "@/components/compose/recipient-input";
 import { TemplatePicker } from "@/components/compose/template-picker";
 import { SendSplitButton } from "@/components/compose/send-split-button";
 import { htmlToPlainText } from "@/lib/utils";
@@ -177,14 +178,19 @@ export function ComposeForm({ mailboxes, mode, initialValues }: ComposeFormProps
           <label htmlFor="to" className="w-14 shrink-0 text-xs text-gray-500">
             Para
           </label>
-          <input
-            id="to"
-            type="email"
-            placeholder="nombre@mail.com"
-            className={rowInputClass}
-            aria-invalid={!!errors.to}
-            aria-describedby={errors.to ? "to-error" : undefined}
-            {...register("to")}
+          <Controller
+            control={control}
+            name="to"
+            render={({ field }) => (
+              <RecipientInput
+                id="to"
+                mailboxId={selectedMailboxId}
+                value={field.value}
+                onChange={field.onChange}
+                invalid={!!errors.to}
+                describedBy={errors.to ? "to-error" : undefined}
+              />
+            )}
           />
         </div>
         {errors.to && (

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMessage } from "@/lib/api/mail";
 import { ReplyBox } from "@/components/inbox/reply-box";
+import { LabelPicker } from "@/components/inbox/label-picker";
+import { MessageLabelChips } from "@/components/inbox/message-label-chips";
 import { ArrowLeftIcon } from "@/components/icons";
 
 export default async function MessagePage({
@@ -24,7 +26,15 @@ export default async function MessagePage({
         Volver a la bandeja
       </Link>
 
-      <h1 className="mb-1 text-lg font-medium text-gray-900">{message.subject}</h1>
+      <div className="mb-1 flex items-start justify-between gap-3">
+        <h1 className="text-lg font-medium text-gray-900">{message.subject}</h1>
+        <LabelPicker
+          mailboxId={params.mailboxId}
+          messageId={message.id}
+          initialLabelIds={message.labelIds}
+        />
+      </div>
+      <MessageLabelChips messageId={message.id} initialLabelIds={message.labelIds} />
       <p className="mb-4 text-xs text-gray-500">
         {message.from.name} &lt;{message.from.email}&gt; · para {message.to}
       </p>

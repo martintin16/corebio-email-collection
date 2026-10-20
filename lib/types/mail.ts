@@ -11,6 +11,8 @@ export interface MessageSummary {
   snippet: string;
   receivedAt: string; // ISO
   unread: boolean;
+  // Ids de las etiquetas de Gmail aplicadas a la conversación (ver MailLabel).
+  labelIds: string[];
 }
 
 export interface MessageDetail extends MessageSummary {

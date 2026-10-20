@@ -522,6 +522,20 @@ components/compose/
 En `mode="page"` (carga directa de `/compose`, sin modal) no hay `Provider`, así que el hook devuelve
 `null` y no pasa nada — `ComposeForm` no necesita saber en qué contexto está.
 
+## Etiquetas y contactos (Anexo 3)
+
+Todo con datos mock (`lib/api/labels.ts`, `lib/api/contacts.ts`); la integración real con Gmail Labels API y People API la hace el backend (ver `corebio-mail-backend-brief.md`, 6.11 y 6.12).
+
+**Etiquetas**
+- Las etiquetas son las de Gmail de cada casilla y se aplican por conversación (hilo). `MailboxLabelsProvider` (layout de la casilla) las carga una vez y comparte con lista y detalle el estado y el filtro.
+- Detalle: botón de etiqueta con checklist (cambio optimista, se revierte con aviso si falla) y chips bajo el título.
+- Recibidos: fila de filtro por etiqueta (multi-selección, OR) y chips en cada fila.
+
+**Contactos en "Para"**
+- `RecipientInput`: chips por destinatario, autocompletado de contactos y grupos, pegado de listas, direcciones inválidas en rojo. El valor sigue siendo un string separado por comas, así que el resto de Redactar no cambia.
+- Un grupo se agrega como un solo chip colapsado (se expande para quitar miembros).
+- `RecipientPickerDialog` (lupa): grupos a la izquierda con "seleccionar todo" de tres estados, miembros o búsqueda a la derecha.
+
 ## Pendiente
 
 Todo lo que queda es explícitamente responsabilidad del backend, no front sin terminar: el envío/recepción
