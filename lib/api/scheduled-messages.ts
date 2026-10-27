@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import * as http from "./http.server";
 import { ApiError, type ActionResult } from "./errors";
 import type { ScheduledMessage } from "@/lib/types/scheduled-message";
@@ -26,6 +27,9 @@ export async function getScheduledMessageById(id: string): Promise<ScheduledMess
 }
 
 /** Solo si todavía no salió (si ya se está enviando → error 409). */
+/** Cancelar revalida las bandejas: así baja también el contador "Programados (N)". */
 export async function cancelScheduledMessage(id: string): Promise<ActionResult> {
-  return http.action(() => http.del(`/scheduled-messages/${encodeURIComponent(id)}`));
+  const result = await http.action(() => http.del(`/scheduled-messages/${encodeURIComponent(id)}`));
+  if (result.ok) revalidatePath("/inbox", "layout");
+  return result;
 }

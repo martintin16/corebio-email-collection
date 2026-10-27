@@ -22,11 +22,13 @@ import type { AttachmentInfo } from "@/lib/types/mail";
 import { sendMessage } from "@/lib/api/messages.browser";
 import { scheduleMessage, updateScheduledMessage } from "@/lib/api/scheduled-messages.browser";
 import { formatScheduledAt } from "@/lib/schedule-options";
+import { revalidateInbox } from "@/lib/api/revalidate";
 
 interface ComposeFormProps {
   mailboxes: Mailbox[];
   // "modal": llegó vía navegación interna (intercepting route) → cierra con router.back().
-  // "page": carga directa de /compose (refresh, link) → no hay "atrás" al que volver, va a /inbox.
+  // "page": carga directa de /compose (refresh, link) → no hay "atrás" al que volver, va a la
+  // casilla elegida en "De" (o a /inbox si esa casilla no se puede leer).
   mode: "modal" | "page";
   // Prellenado al editar un envío programado desde la vista "Programados"
   // (?edit=<id> → se resuelve en el Server Component de la página).
@@ -141,11 +143,25 @@ export function ComposeForm({
     setCarried((prev) => prev.filter((a) => a.id !== id));
   }
 
-  function goBack() {
-    if (mode === "modal") router.back();
-    else router.push("/inbox");
-    // Las listas (Enviados, Programados) se cargan en el servidor: que se vean los cambios.
-    router.refresh();
+  /**
+   * Cierra Redactar. Después de enviar o programar (`changed`), primero
+   * revalida las bandejas: si no, al volver se verían Enviados y Programados
+   * como estaban antes (salen del caché del router).
+   */
+  async function goBack(changed = false) {
+    if (changed) {
+      try {
+        await revalidateInbox();
+      } catch {
+        // Si falla, el envío ya salió igual: se ve al recargar.
+      }
+    }
+    if (mode === "modal") {
+      router.back();
+      return;
+    }
+    const mailbox = mailboxes.find((m) => m.id === getValues("mailboxId"));
+    router.push(mailbox?.canRead ? `/inbox/${mailbox.id}` : "/inbox");
   }
 
   /** Adjuntos del mensaje original que siguen en la lista (Reenviar). */
@@ -183,7 +199,7 @@ export function ComposeForm({
         return;
       }
       showToast("success", "Mensaje enviado.");
-      goBack();
+      await goBack(true);
     } catch {
       setFormError("No pudimos enviar el mensaje. Intentá de nuevo.");
     }
@@ -214,7 +230,7 @@ export function ComposeForm({
         return;
       }
       showToast("success", successMessage);
-      goBack();
+      await goBack(true);
     } catch {
       setFormError("No pudimos programar el envío. Intentá de nuevo.");
     }
@@ -498,7 +514,7 @@ export function ComposeForm({
         </label>
 
         <div className="flex gap-2">
-          <Button type="button" variant="secondary" onClick={goBack} disabled={isSubmitting}>
+          <Button type="button" variant="secondary" onClick={() => void goBack()} disabled={isSubmitting}>
             Cancelar
           </Button>
           <SendSplitButton

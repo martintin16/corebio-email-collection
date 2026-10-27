@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog } from "@/components/ui/dialog";
@@ -34,16 +34,6 @@ export function EditPermissionsDialog({
   const { showToast } = useToast();
   const [formError, setFormError] = useState<string | null>(null);
 
-  const defaultAccess = Object.fromEntries(
-    mailboxes.map((mailbox) => {
-      const existing = user.mailboxAccess.find((a) => a.mailboxId === mailbox.id);
-      return [
-        mailbox.id,
-        { canSend: existing?.canSend ?? false, canRead: existing?.canRead ?? false },
-      ];
-    })
-  );
-
   const {
     register,
     handleSubmit,
@@ -52,8 +42,19 @@ export function EditPermissionsDialog({
     formState: { isSubmitting },
   } = useForm<EditPermissionsFormValues>({
     resolver: zodResolver(editPermissionsSchema),
-    defaultValues: { role: user.role, access: defaultAccess },
+    defaultValues: currentValues(user, mailboxes),
   });
+
+  // El diálogo queda montado aunque esté cerrado, así que los defaultValues
+  // de arriba son los del primer render. Cada vez que se abre, se carga lo
+  // que está guardado ahora: si no, después de guardar se vería lo de antes
+  // y guardar de nuevo revertiría el cambio sin que nadie se dé cuenta.
+  useEffect(() => {
+    if (open) reset(currentValues(user, mailboxes));
+    // Solo al abrir: si llegan datos nuevos con el diálogo abierto, no se
+    // pisa lo que la persona está editando.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Para saber, en vivo, a qué casillas quedaría con acceso esta persona —
   // "Gestionar Drive" se habilita según eso, no según lo que ya estaba
@@ -62,7 +63,6 @@ export function EditPermissionsDialog({
   const [driveMailbox, setDriveMailbox] = useState<AdminMailbox | null>(null);
 
   function handleClose() {
-    reset();
     setFormError(null);
     onClose();
   }
@@ -179,4 +179,18 @@ export function EditPermissionsDialog({
       )}
     </Dialog>
   );
+}
+
+/** Rol y permisos guardados de la persona, con todas las casillas (sin acceso = destildada). */
+function currentValues(user: AdminUser, mailboxes: AdminMailbox[]): EditPermissionsFormValues {
+  const access = Object.fromEntries(
+    mailboxes.map((mailbox) => {
+      const existing = user.mailboxAccess.find((a) => a.mailboxId === mailbox.id);
+      return [
+        mailbox.id,
+        { canSend: existing?.canSend ?? false, canRead: existing?.canRead ?? false },
+      ];
+    })
+  );
+  return { role: user.role, access };
 }

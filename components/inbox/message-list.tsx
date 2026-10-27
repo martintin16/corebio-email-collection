@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { MessageSummary } from "@/lib/types/mail";
@@ -23,6 +24,15 @@ const MAX_CHIPS_PER_ROW = 3;
 export function MessageList({ mailboxId, messages }: MessageListProps) {
   const params = useParams<{ messageId?: string }>();
   const { labelsById, getLabelIds, filterIds, clearFilter } = useMailboxLabels();
+  // Abiertos en esta pantalla: el backend los marca leídos al abrirlos, pero
+  // la lista viene del layout, que Next no vuelve a pedir al abrir un mail.
+  // Se marcan acá al momento; cuando llega una lista nueva del servidor, ya
+  // viene con el dato real y esto se vacía.
+  const [openedIds, setOpenedIds] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => setOpenedIds(new Set()), [messages]);
+  // El que está abierto también (por ejemplo, si se entró directo por URL).
+  const isUnread = (message: MessageSummary) =>
+    message.unread && !openedIds.has(message.id) && params.messageId !== message.id;
 
   if (messages.length === 0) {
     return (
@@ -70,6 +80,7 @@ export function MessageList({ mailboxId, messages }: MessageListProps) {
       <ul aria-label="Mensajes" className="divide-y divide-gray-200">
         {visible.map((message) => {
           const active = params.messageId === message.id;
+          const unread = isUnread(message);
           const messageLabels = getLabelIds(message.id, message.labelIds)
             .map((id) => labelsById.get(id))
             .filter((label): label is NonNullable<typeof label> => label !== undefined);
@@ -77,6 +88,7 @@ export function MessageList({ mailboxId, messages }: MessageListProps) {
             <li key={message.id}>
               <Link
                 href={`/inbox/${mailboxId}/${message.id}`}
+                onClick={() => setOpenedIds((prev) => new Set(prev).add(message.id))}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex gap-2.5 px-4 py-2.5 transition-colors",
@@ -87,7 +99,7 @@ export function MessageList({ mailboxId, messages }: MessageListProps) {
                   aria-hidden="true"
                   className={cn(
                     "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
-                    message.unread ? "bg-primary-600" : "bg-transparent"
+                    unread ? "bg-primary-600" : "bg-transparent"
                   )}
                 />
                 <div className="min-w-0 flex-1">
@@ -95,11 +107,11 @@ export function MessageList({ mailboxId, messages }: MessageListProps) {
                     <span
                       className={cn(
                         "truncate text-sm",
-                        message.unread ? "font-medium text-gray-900" : "text-gray-600"
+                        unread ? "font-medium text-gray-900" : "text-gray-600"
                       )}
                     >
                       {message.from.name}
-                      {message.unread && <span className="sr-only"> (no leído)</span>}
+                      {unread && <span className="sr-only"> (no leído)</span>}
                     </span>
                     <span className="shrink-0 text-[11px] text-gray-400">
                       {formatMessageDate(message.receivedAt)}
@@ -108,7 +120,7 @@ export function MessageList({ mailboxId, messages }: MessageListProps) {
                   <p
                     className={cn(
                       "truncate text-xs",
-                      message.unread ? "font-medium text-gray-800" : "text-gray-500"
+                      unread ? "font-medium text-gray-800" : "text-gray-500"
                     )}
                   >
                     {message.subject}
