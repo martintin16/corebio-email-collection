@@ -397,7 +397,7 @@ pestaña) ni se entera de lo que va directo del navegador al backend. Por eso:
 - **Editar permisos** carga lo guardado cada vez que se abre: el diálogo queda montado y, si no,
   mostraba lo de antes de guardar (y guardar otra vez lo revertía).
 - **Mails nuevos** (`MailboxRefresh`, al lado del selector de casilla): cada 60 segundos con la pestaña
-  visible, y al volver a ella, pide `GET /mailboxes/:id/sync-state` (1 unidad de cuota de Gmail). Si
+  visible, y al volver a ella (no más de una vez cada 15 segundos), pide `GET /mailboxes/:id/sync-state` (1 unidad de cuota de Gmail). Si
   cambió, `router.refresh()`: vuelve a pedir las listas sin perder lo que se está escribiendo. El botón
   "Actualizar" hace lo mismo a mano. Los chequeos de fondo usan `getOrNull` (si fallan no llevan al
   login, para no cortar a quien está escribiendo).

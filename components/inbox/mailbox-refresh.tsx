@@ -9,6 +9,11 @@ import { cn } from "@/lib/utils";
 
 /** Cada cuánto se pregunta si hay novedades (solo con la pestaña visible). */
 const SYNC_INTERVAL_MS = 60_000;
+/**
+ * Al volver a la pestaña se chequea enseguida, pero no más de una vez cada
+ * 15 segundos: si no, ir y venir entre pestañas dispara un pedido por vez.
+ */
+const MIN_GAP_ON_RETURN_MS = 15_000;
 
 const fingerprint = (state: MailboxSyncState) => `${state.historyId}|${state.scheduledVersion}`;
 
@@ -27,6 +32,7 @@ export function MailboxRefresh({ mailboxId }: { mailboxId: string }) {
   // Última huella vista; null = todavía no hay contra qué comparar.
   const last = useRef<string | null>(null);
   const inFlight = useRef(false);
+  const lastCheckAt = useRef(0);
 
   const refresh = useCallback(() => startTransition(() => router.refresh()), [router]);
 
@@ -34,6 +40,7 @@ export function MailboxRefresh({ mailboxId }: { mailboxId: string }) {
   const pollChanged = useCallback(async (): Promise<boolean> => {
     if (inFlight.current) return false;
     inFlight.current = true;
+    lastCheckAt.current = Date.now();
     try {
       const state = await getSyncState(mailboxId);
       if (!state) return false;
@@ -57,7 +64,10 @@ export function MailboxRefresh({ mailboxId }: { mailboxId: string }) {
     };
     void check(); // la primera vuelta solo toma la huella de lo que se está viendo
     const timer = setInterval(() => void check(), SYNC_INTERVAL_MS);
-    const onVisible = () => void check();
+    const onVisible = () => {
+      if (Date.now() - lastCheckAt.current < MIN_GAP_ON_RETURN_MS) return;
+      void check();
+    };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
     return () => {
