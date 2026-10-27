@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 /** Cada cuánto se pregunta si hay novedades (solo con la pestaña visible). */
 const SYNC_INTERVAL_MS = 60_000;
 /**
- * Al volver a la pestaña se chequea enseguida, pero no más de una vez cada
- * 15 segundos: si no, ir y venir entre pestañas dispara un pedido por vez.
+ * Mínimo entre dos chequeos automáticos. Al volver a la pestaña se chequea
+ * enseguida, pero ir y venir entre pestañas no dispara un pedido por vez, y
+ * el chequeo del minuto se saltea si recién hubo uno por volver.
  */
-const MIN_GAP_ON_RETURN_MS = 15_000;
+const MIN_GAP_MS = 15_000;
 
 const fingerprint = (state: MailboxSyncState) => `${state.historyId}|${state.scheduledVersion}`;
 
@@ -60,14 +61,12 @@ export function MailboxRefresh({ mailboxId }: { mailboxId: string }) {
     last.current = null;
     const check = async () => {
       if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastCheckAt.current < MIN_GAP_MS) return;
       if (await pollChanged()) refresh();
     };
     void check(); // la primera vuelta solo toma la huella de lo que se está viendo
     const timer = setInterval(() => void check(), SYNC_INTERVAL_MS);
-    const onVisible = () => {
-      if (Date.now() - lastCheckAt.current < MIN_GAP_ON_RETURN_MS) return;
-      void check();
-    };
+    const onVisible = () => void check();
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
     return () => {

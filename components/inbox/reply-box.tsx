@@ -19,9 +19,18 @@ interface ReplyBoxProps {
   replyToName: string;
   replyToEmail: string;
   subject: string;
+  /** Acción que va al lado de "Responder" mientras la respuesta está cerrada (ej. Reenviar). */
+  secondaryAction?: React.ReactNode;
 }
 
-export function ReplyBox({ mailboxId, messageId, replyToName, replyToEmail, subject }: ReplyBoxProps) {
+export function ReplyBox({
+  mailboxId,
+  messageId,
+  replyToName,
+  replyToEmail,
+  subject,
+  secondaryAction,
+}: ReplyBoxProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
@@ -36,9 +45,12 @@ export function ReplyBox({ mailboxId, messageId, replyToName, replyToEmail, subj
 
   if (!open) {
     return (
-      <Button variant="secondary" onClick={() => setOpen(true)}>
-        Responder
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" onClick={() => setOpen(true)}>
+          Responder
+        </Button>
+        {secondaryAction}
+      </div>
     );
   }
 

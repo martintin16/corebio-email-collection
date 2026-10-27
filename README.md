@@ -227,9 +227,14 @@ la persona elige a quién reenviarlo. Comparte el mecanismo `initialValues` de `
 existía para "Editar" un envío programado (etapa 5); ambos casos ahora conviven en el mismo `page.tsx`
 de Compose vía `?edit=` o `?forward=` (mutuamente excluyentes, `edit` gana si por error vinieran los dos).
 
-**Limitación conocida (mock):** igual que "Programados", es un listado de ejemplo fijo — mandar un
-mensaje desde Redactar/Responder no agrega una fila acá todavía. Se van a unir cuando exista el
-backend real y ambas puntas lean/escriban del mismo lugar.
+**Reenviar también un recibido** (agregado después, ver Addendum 5 del PDF): el detalle de un recibido
+tiene "Reenviar" al lado de "Responder" (mismo `ForwardButton`, vía `secondaryAction` de `ReplyBox`).
+Redactar lo distingue por la URL: `?forward=<id>&mailbox=<casilla>` es un recibido (lo pide con
+`getMessage`), `?forward=<id>` solo es un enviado. Esa lógica vive en `lib/compose-prefill.ts`, que usan
+las dos páginas de Compose. La cita lleva De, Fecha, Asunto, Para y Cc del original, todo escapado (el
+asunto y el cuerpo de un recibido los escribe un tercero). Responder y Reenviar se muestran solo con
+`canSend` en esa casilla. Los dos detalles muestran la fecha completa en horario de Argentina
+(`formatFullDate`).
 
 ## Acceso a Drive
 
@@ -600,6 +605,8 @@ Todo con datos mock (`lib/api/labels.ts`, `lib/api/contacts.ts`); la integració
 
 El front ya está conectado al backend real (ver "Conexión con el backend"). Queda:
 
+- **Lint**: el front no tiene ESLint configurado (`next lint` abre la configuración interactiva). Si se suma,
+  configurarlo para que avise sin romper `next build`. La red de seguridad hoy es TypeScript estricto en el build.
 - **Deploy**: backend en Railway y `NEXT_PUBLIC_API_URL` de producción en Vercel. Esta conexión no se pasa a
   `main` hasta que el backend esté publicado (si no, la versión de Vercel queda sin backend).
 - Opcional: sumar "Otros contactos" al autocompletado de "Para" buscando con `searchContacts(mailboxId, q)`

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSentMessage } from "@/lib/api/messages";
+import { getMailboxesForCurrentUser } from "@/lib/api/mailboxes";
+import { formatFullDate } from "@/lib/format";
 import { ForwardButton } from "@/components/inbox/forward-button";
 import { AttachmentList } from "@/components/inbox/attachment-list";
 import { ArrowLeftIcon } from "@/components/icons";
@@ -10,8 +12,13 @@ export default async function SentMessagePage({
 }: {
   params: { mailboxId: string; sentId: string };
 }) {
-  const message = await getSentMessage(params.mailboxId, params.sentId);
+  const [message, mailboxes] = await Promise.all([
+    getSentMessage(params.mailboxId, params.sentId),
+    getMailboxesForCurrentUser(),
+  ]);
   if (!message) notFound();
+  // Reenviar manda desde esta casilla: sin canSend no se muestra.
+  const canSend = mailboxes.some((m) => m.id === params.mailboxId && m.canSend);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-6">
@@ -25,10 +32,13 @@ export default async function SentMessagePage({
       </Link>
 
       <h1 className="mb-1 text-lg font-medium text-gray-900">{message.subject}</h1>
-      <p className="mb-4 text-xs text-gray-500">
+      <p className="text-xs text-gray-500">
         Para {message.to || "(sin destinatarios visibles)"}
         {message.cc && <> · cc {message.cc}</>}
         {message.bcc && <> · cco {message.bcc}</>}
+      </p>
+      <p className="mb-4 mt-0.5 text-xs text-gray-400">
+        <time dateTime={message.sentAt}>{formatFullDate(message.sentAt)}</time>
       </p>
 
       <div className="mb-5 border-t border-gray-200" />
@@ -46,9 +56,11 @@ export default async function SentMessagePage({
         attachments={message.attachments}
       />
 
-      <div className="mt-6">
-        <ForwardButton sentId={message.id} />
-      </div>
+      {canSend && (
+        <div className="mt-6">
+          <ForwardButton messageId={message.id} />
+        </div>
+      )}
     </div>
   );
 }

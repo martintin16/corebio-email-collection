@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMessage } from "@/lib/api/messages";
+import { getMailboxesForCurrentUser } from "@/lib/api/mailboxes";
+import { formatFullDate } from "@/lib/format";
+import { ForwardButton } from "@/components/inbox/forward-button";
 import { ReplyBox } from "@/components/inbox/reply-box";
 import { LabelPicker } from "@/components/inbox/label-picker";
 import { MessageLabelChips } from "@/components/inbox/message-label-chips";
@@ -12,8 +15,13 @@ export default async function MessagePage({
 }: {
   params: { mailboxId: string; messageId: string };
 }) {
-  const message = await getMessage(params.mailboxId, params.messageId);
+  const [message, mailboxes] = await Promise.all([
+    getMessage(params.mailboxId, params.messageId),
+    getMailboxesForCurrentUser(),
+  ]);
   if (!message) notFound();
+  // Responder y Reenviar mandan desde esta casilla: sin canSend no se muestran.
+  const canSend = mailboxes.some((m) => m.id === params.mailboxId && m.canSend);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-6">
@@ -36,9 +44,12 @@ export default async function MessagePage({
         />
       </div>
       <MessageLabelChips messageId={message.id} initialLabelIds={message.labelIds} />
-      <p className="mb-4 text-xs text-gray-500">
+      <p className="text-xs text-gray-500">
         {message.from.name} &lt;{message.from.email}&gt; · para {message.to}
         {message.cc && <> · cc {message.cc}</>}
+      </p>
+      <p className="mb-4 mt-0.5 text-xs text-gray-400">
+        <time dateTime={message.receivedAt}>{formatFullDate(message.receivedAt)}</time>
       </p>
 
       <div className="mb-5 border-t border-gray-200" />
@@ -53,15 +64,18 @@ export default async function MessagePage({
         attachments={message.attachments}
       />
 
-      <div className="mt-6">
-        <ReplyBox
-          mailboxId={params.mailboxId}
-          messageId={message.id}
-          replyToName={message.from.name}
-          replyToEmail={message.from.email}
-          subject={message.subject}
-        />
-      </div>
+      {canSend && (
+        <div className="mt-6">
+          <ReplyBox
+            mailboxId={params.mailboxId}
+            messageId={message.id}
+            replyToName={message.from.name}
+            replyToEmail={message.from.email}
+            subject={message.subject}
+            secondaryAction={<ForwardButton messageId={message.id} mailboxId={params.mailboxId} />}
+          />
+        </div>
+      )}
     </div>
   );
 }

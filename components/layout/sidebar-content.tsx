@@ -69,7 +69,9 @@ function AccountMenu({ userEmail }: { userEmail: string }) {
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    // Al volver a entrar, el login lleva de nuevo a esta página (?next=).
+    // Si entra alguien sin permiso para verla, el middleware lo redirige.
+    router.push(`/login?next=${encodeURIComponent(pathname ?? "/inbox")}`);
     router.refresh();
   }
 

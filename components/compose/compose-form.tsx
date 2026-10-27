@@ -16,7 +16,7 @@ import { RecipientInput, type RecipientInputHandle } from "@/components/compose/
 import { TemplatePicker } from "@/components/compose/template-picker";
 import { SendSplitButton } from "@/components/compose/send-split-button";
 import { htmlToPlainText } from "@/lib/utils";
-import { parseRecipients } from "@/lib/recipients";
+import { isValidEmail, parseRecipients } from "@/lib/recipients";
 import type { PickedGroup } from "@/lib/types/contact";
 import type { AttachmentInfo } from "@/lib/types/mail";
 import { sendMessage } from "@/lib/api/messages.browser";
@@ -102,10 +102,10 @@ export function ComposeForm({
   const selectedMailboxId = useWatch({ control, name: "mailboxId" });
   const bodyValue = useWatch({ control, name: "body" });
   const [toValue, ccValue, bccValue] = useWatch({ control, name: ["to", "cc", "bcc"] });
-  const recipientCount =
-    parseRecipients(toValue ?? "").length +
-    parseRecipients(ccValue ?? "").length +
-    parseRecipients(bccValue ?? "").length;
+  // Solo los emails válidos: lo que se está escribiendo ("gru…") no suma.
+  const recipientCount = [toValue, ccValue, bccValue]
+    .flatMap((value) => parseRecipients(value ?? ""))
+    .filter(isValidEmail).length;
 
   // Cc y Cco arrancan ocultos, como en Gmail. Los dos campos siguen montados
   // aunque estén ocultos, para poder mandarle grupos a Cco desde "Para".
