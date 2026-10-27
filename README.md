@@ -367,6 +367,8 @@ lib/api/
   auth.ts, mailboxes.ts, users.ts, messages.ts, scheduled-messages.ts,
   templates.ts, contacts.ts, drive.ts          "use server": casi todo
   messages.browser.ts, scheduled-messages.browser.ts   enviar/responder/programar con adjuntos y descargas
+  revalidate.ts         "use server": avisar a Next que cambiaron las bandejas
+  sync.ts               "use server": estado de la casilla, para ver mails nuevos sin recargar
 ```
 
 - **Casi todo corre en el servidor de Next** (`"use server"`): sirve igual desde una page o desde un
@@ -379,6 +381,26 @@ lib/api/
   producción Next oculta el texto de los errores que vienen del servidor, y el formulario necesita el
   mensaje real del backend (ej. "quedan 3 destinatarios hoy"). `error.code` distingue los casos
   especiales (`RECIPIENT_LIMIT_EXCEEDED`, `TEMPLATE_NAME_TAKEN`, `mailbox_needs_reconnect`…).
+
+### Que lo que se ve esté al día
+
+Las listas de la casilla (Recibidos, Enviados, Programados y el contador) las pide el layout de
+`/inbox/[mailboxId]`, y Next **no vuelve a pedir un layout** al navegar adentro (abrir un mail, cambiar de
+pestaña) ni se entera de lo que va directo del navegador al backend. Por eso:
+
+- **Después de enviar, responder, reenviar, programar o editar**, Redactar llama a `revalidateInbox()`
+  antes de volver. En Next 14, `revalidatePath` dentro de una Server Action vacía también el caché del
+  router del navegador. Desde la página completa de `/compose` vuelve a la casilla elegida en "De".
+- **Cancelar un programado** revalida en la misma acción: baja el contador "Programados (N)".
+- **Leído al abrir**: el backend lo marca en Gmail; la lista lo marca al momento (`MessageList`), sin
+  esperar a pedirla de nuevo.
+- **Editar permisos** carga lo guardado cada vez que se abre: el diálogo queda montado y, si no,
+  mostraba lo de antes de guardar (y guardar otra vez lo revertía).
+- **Mails nuevos** (`MailboxRefresh`, al lado del selector de casilla): cada 60 segundos con la pestaña
+  visible, y al volver a ella, pide `GET /mailboxes/:id/sync-state` (1 unidad de cuota de Gmail). Si
+  cambió, `router.refresh()`: vuelve a pedir las listas sin perder lo que se está escribiendo. El botón
+  "Actualizar" hace lo mismo a mano. Los chequeos de fondo usan `getOrNull` (si fallan no llevan al
+  login, para no cortar a quien está escribiendo).
 
 ## Setup para correrlo y probarlo
 

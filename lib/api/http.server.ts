@@ -57,6 +57,20 @@ export async function get<T>(path: string): Promise<T> {
   }
 }
 
+/**
+ * Consultas de fondo (por ejemplo, el chequeo de novedades de la bandeja):
+ * null si falla, sin lanzar ni ir al login. Así un chequeo que falla no
+ * interrumpe a quien está escribiendo un mail; el próximo pedido normal se
+ * encarga de la sesión vencida.
+ */
+export async function getOrNull<T>(path: string): Promise<T | null> {
+  try {
+    return await request<T>("GET", path);
+  } catch {
+    return null;
+  }
+}
+
 /** Escrituras: lanzan ApiError (las acciones lo convierten con `action`). */
 export const post = <T>(path: string, body?: unknown) => request<T>("POST", path, body ?? {});
 export const patch = <T>(path: string, body: unknown) => request<T>("PATCH", path, body);

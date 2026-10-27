@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { MailboxSwitcher } from "@/components/inbox/mailbox-switcher";
+import { MailboxRefresh } from "@/components/inbox/mailbox-refresh";
 import { MessageList } from "@/components/inbox/message-list";
 import { SentMessageList } from "@/components/inbox/sent-message-list";
 import { ScheduledMessageList } from "@/components/inbox/scheduled-message-list";
@@ -28,8 +29,12 @@ export function MailboxListPanel({ mailboxes, mailbox, messages, sent, scheduled
 
   return (
     <>
-      <div className="border-b border-gray-200 px-4 py-3">
-        <MailboxSwitcher mailboxes={mailboxes} current={mailbox} />
+      <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <MailboxSwitcher mailboxes={mailboxes} current={mailbox} />
+        </div>
+        {/* key: al cambiar de casilla arranca de cero (otra huella). */}
+        <MailboxRefresh key={mailbox.id} mailboxId={mailbox.id} />
       </div>
       <MailboxTabs mailboxId={mailbox.id} scheduledCount={scheduled.length} />
       {/* Las etiquetas son de las conversaciones recibidas — Enviados y
