@@ -97,6 +97,12 @@ export async function loadComposePrefill(params: ComposeSearchParams): Promise<C
 
   if (forwardSent) {
     const mailbox = allMailboxes.find((m) => m.id === forwardSent.mailboxId);
+    // Mismo formato que el "De" de un recibido: "Nombre <email>".
+    const from = mailbox
+      ? mailbox.displayName
+        ? `${mailbox.displayName} <${mailbox.email}>`
+        : mailbox.email
+      : "";
     return {
       mailboxes,
       title: "Reenviar mensaje",
@@ -105,7 +111,7 @@ export async function loadComposePrefill(params: ComposeSearchParams): Promise<C
         to: "",
         subject: buildForwardSubject(forwardSent.subject),
         body: buildForwardBody({
-          from: mailbox?.email ?? "",
+          from,
           date: forwardSent.sentAt,
           to: forwardSent.to,
           cc: forwardSent.cc,

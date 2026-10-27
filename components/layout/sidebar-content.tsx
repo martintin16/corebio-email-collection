@@ -64,6 +64,7 @@ export function SidebarContent({ role, userEmail, onNavigate }: SidebarContentPr
 // justo debajo, sin popup ni estado que coordinar.
 function AccountMenu({ userEmail }: { userEmail: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   const initials = userEmail.slice(0, 2).toUpperCase();
 
   async function handleSignOut() {
