@@ -44,7 +44,9 @@ export async function loadMoreMessages(
   mailboxId: string,
   pageToken: string
 ): Promise<ActionResult<MessagePage<MessageSummary>>> {
-  return http.action(() => http.get(`${box(mailboxId)}/messages${page(pageToken)}`));
+  return http.action(() =>
+    http.get<MessagePage<MessageSummary>>(`${box(mailboxId)}/messages${page(pageToken)}`)
+  );
 }
 
 /** Abrirlo lo marca como leído (como en Gmail). */
@@ -69,7 +71,9 @@ export async function loadMoreSent(
   mailboxId: string,
   pageToken: string
 ): Promise<ActionResult<MessagePage<SentMessageSummary>>> {
-  return http.action(() => http.get(`${box(mailboxId)}/sent${page(pageToken)}`));
+  return http.action(() =>
+    http.get<MessagePage<SentMessageSummary>>(`${box(mailboxId)}/sent${page(pageToken)}`)
+  );
 }
 
 export async function getSentMessage(
