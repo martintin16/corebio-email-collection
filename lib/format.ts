@@ -3,7 +3,8 @@ export function formatMessageDate(iso: string): string {
   const now = new Date();
 
   if (date.toDateString() === now.toDateString()) {
-    return date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    // 24 h, como el resto de la app ("17:14", no "05:14 p. m.").
+    return date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   }
 
   const yesterday = new Date(now);

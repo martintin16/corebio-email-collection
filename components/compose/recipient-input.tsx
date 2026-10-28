@@ -666,23 +666,19 @@ function PersonChip({
   return (
     <span
       className={cn(
-        "inline-flex max-w-full items-center gap-1 rounded-full py-0.5 pl-2.5 pr-1 text-xs",
+        // Ancho máximo: con la dirección entera cada chip ocupaba un renglón
+        // y con muchos destinatarios el campo se volvía una columna larga.
+        "inline-flex max-w-[11rem] items-center gap-1 rounded-full py-0.5 pl-2.5 pr-1 text-xs",
         valid
           ? subtle
             ? "border border-gray-200 bg-white text-gray-800"
             : "bg-gray-100 text-gray-800"
           : "bg-danger-bg text-danger-text"
       )}
+      title={name ? `${name} <${email}>` : email}
     >
-      <span className="truncate">
-        {name ? (
-          <>
-            {name} <span className={valid ? "text-gray-400" : "text-danger-text/70"}>&lt;{email}&gt;</span>
-          </>
-        ) : (
-          email
-        )}
-      </span>
+      {/* Con nombre se ve solo el nombre; la dirección completa, al pasar el mouse. */}
+      <span className="truncate">{name || email}</span>
       {!valid && <span className="sr-only"> (no es un email válido)</span>}
       <button
         type="button"

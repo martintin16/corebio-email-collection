@@ -39,8 +39,10 @@ export function MailboxListPanel({ mailboxes, mailbox, messages, sent, scheduled
       {/* Las etiquetas son de las conversaciones recibidas — Enviados y
           Programados no tienen nada para filtrar por etiqueta. */}
       {tab === "inbox" && <InboxLabelFilter />}
-      {/* Encabezado fijo arriba; solo esto scrollea. */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      {/* Encabezado fijo arriba; solo esto scrollea. `relative`: los textos
+          ocultos para lectores de pantalla (sr-only, position:absolute) de
+          las filas se ubican contra esta columna; si no, estiraban la página. */}
+      <div className="relative min-h-0 flex-1 overflow-y-auto">
         {tab === "sent" ? (
           <SentMessageList mailboxId={mailbox.id} firstPage={sent} canSend={mailbox.canSend} />
         ) : tab === "scheduled" ? (

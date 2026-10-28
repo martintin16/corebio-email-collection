@@ -87,6 +87,18 @@ export function AttachmentList({
           </button>
         </li>
       ))}
+      {compact && attachments.length > COMPACT_MAX && (
+        <li>
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            aria-expanded={true}
+            className="rounded-md px-1.5 py-1 text-[11px] text-primary-700 hover:underline"
+          >
+            ver menos
+          </button>
+        </li>
+      )}
     </ul>
   );
 }

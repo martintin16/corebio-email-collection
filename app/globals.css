@@ -73,6 +73,9 @@ body {
   display: block;
   max-width: 100%;
   overflow-x: auto;
+  /* Adentro de una tabla las palabras se mantienen enteras: la tabla
+     scrollea de costado en vez de apretarse hasta cortar cada palabra. */
+  overflow-wrap: normal;
 }
 .email-body pre {
   white-space: pre-wrap;

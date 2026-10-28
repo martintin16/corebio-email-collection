@@ -42,7 +42,8 @@ export function DashboardShell({ role, userEmail, children, modal }: DashboardSh
             <span className="text-sm font-medium text-gray-900">corebio mail</span>
           </div>
 
-          <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+          {/* relative: mismo motivo que la lista de mails (los sr-only no estiran la página). */}
+          <main className="relative min-h-0 flex-1 overflow-y-auto">{children}</main>
         </div>
 
         {/* Mobile: drawer, montado solo mientras está abierto */}

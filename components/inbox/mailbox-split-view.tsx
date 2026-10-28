@@ -42,7 +42,7 @@ export function MailboxSplitView({ listPanel, children }: MailboxSplitViewProps)
         {listPanel}
       </div>
 
-      <div className={cn("min-h-0 min-w-0 flex-1 overflow-y-auto md:block", hasSelection ? "block" : "hidden")}>
+      <div className={cn("relative min-h-0 min-w-0 flex-1 overflow-y-auto md:block", hasSelection ? "block" : "hidden")}>
         {children}
       </div>
     </div>
