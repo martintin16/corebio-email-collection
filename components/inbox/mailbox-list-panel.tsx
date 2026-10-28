@@ -1,8 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { MailboxSwitcher } from "@/components/inbox/mailbox-switcher";
 import { MailboxRefresh } from "@/components/inbox/mailbox-refresh";
+import { useMailboxPath } from "@/components/inbox/use-mailbox-path";
 import { MessageList } from "@/components/inbox/message-list";
 import { SentMessageList } from "@/components/inbox/sent-message-list";
 import { ScheduledMessageList } from "@/components/inbox/scheduled-message-list";
@@ -23,9 +23,7 @@ interface MailboxListPanelProps {
 // Component) y este wrapper cliente decide cuál mostrar según la pestaña
 // activa — así no hace falta que el layout sepa de rutas.
 export function MailboxListPanel({ mailboxes, mailbox, messages, sent, scheduled }: MailboxListPanelProps) {
-  const pathname = usePathname();
-  const segments = (pathname ?? "").split("/").filter(Boolean);
-  const sub = segments[2];
+  const { tab } = useMailboxPath();
 
   return (
     <>
@@ -39,11 +37,11 @@ export function MailboxListPanel({ mailboxes, mailbox, messages, sent, scheduled
       <MailboxTabs mailboxId={mailbox.id} scheduledCount={scheduled.length} />
       {/* Las etiquetas son de las conversaciones recibidas — Enviados y
           Programados no tienen nada para filtrar por etiqueta. */}
-      {sub !== "sent" && sub !== "scheduled" && <InboxLabelFilter />}
+      {tab === "inbox" && <InboxLabelFilter />}
       <div className="flex-1 overflow-y-auto">
-        {sub === "sent" ? (
-          <SentMessageList mailboxId={mailbox.id} messages={sent} />
-        ) : sub === "scheduled" ? (
+        {tab === "sent" ? (
+          <SentMessageList mailboxId={mailbox.id} messages={sent} canSend={mailbox.canSend} />
+        ) : tab === "scheduled" ? (
           <ScheduledMessageList mailboxId={mailbox.id} initialItems={scheduled} />
         ) : (
           <MessageList mailboxId={mailbox.id} messages={messages} />

@@ -11,6 +11,7 @@ import type { Mailbox } from "@/lib/types/mail";
  * - `?edit=<id>`: editar un envío programado.
  * - `?forward=<id>`: reenviar un ENVIADO (se busca en las casillas de la persona).
  * - `?forward=<id>&mailbox=<casilla>`: reenviar un RECIBIDO de esa casilla.
+ * - `?mailbox=<casilla>` solo: mensaje nuevo con esa casilla en "De".
  */
 export interface ComposeSearchParams {
   edit?: string;
@@ -127,5 +128,12 @@ export async function loadComposePrefill(params: ComposeSearchParams): Promise<C
     };
   }
 
-  return { mailboxes, title: "Nuevo mensaje" };
+  const preselected = mailboxes.find((m) => m.id === params.mailbox);
+  return {
+    mailboxes,
+    title: "Nuevo mensaje",
+    initialValues: preselected
+      ? { mailboxId: preselected.id, to: "", subject: "", body: "" }
+      : undefined,
+  };
 }

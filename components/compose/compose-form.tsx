@@ -135,7 +135,15 @@ export function ComposeForm({
   // quiere el grupo a la vista, lo puede elegir directamente en Cc.
   function sendGroupsToBcc(groups: PickedGroup[]) {
     setShowBcc(true);
-    bccRef.current?.addGroups(groups);
+    const added = bccRef.current?.addGroups(groups) ?? groups.length;
+    if (added === 0) {
+      // Ya estaban: avisar igual, así elegirlo (con mouse o Enter) nunca parece no hacer nada.
+      showToast(
+        "success",
+        groups.length === 1 ? `"${groups[0]?.name}" ya está en Cco.` : "Esos grupos ya están en Cco."
+      );
+      return;
+    }
     showToast(
       "success",
       groups.length === 1

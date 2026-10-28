@@ -1,23 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import type { SentMessageSummary } from "@/lib/types/mail";
 import { formatMessageDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
 import { SentIcon } from "@/components/icons";
 
 interface SentMessageListProps {
   mailboxId: string;
   messages: SentMessageSummary[];
+  /** Con permiso de envío, la lista vacía ofrece "Redactar" desde esta casilla. */
+  canSend?: boolean;
 }
 
 // Mismo patrón visual que MessageList (Recibidos), pero mostrando "Para"
 // en vez de remitente y sin punto de no-leído — un enviado no tiene ese
 // estado.
-export function SentMessageList({ mailboxId, messages }: SentMessageListProps) {
+export function SentMessageList({ mailboxId, messages, canSend = false }: SentMessageListProps) {
   const params = useParams<{ sentId?: string }>();
+  const router = useRouter();
 
   if (messages.length === 0) {
     return (
@@ -25,6 +29,14 @@ export function SentMessageList({ mailboxId, messages }: SentMessageListProps) {
         icon={SentIcon}
         title="No hay mensajes enviados"
         description="Los mails que mandes desde esta casilla van a aparecer acá."
+        action={
+          canSend ? (
+            // Misma intercepting route que "Redactar" del menú, con esta casilla en "De".
+            <Button type="button" variant="secondary" onClick={() => router.push(`/compose?mailbox=${mailboxId}`)}>
+              Redactar
+            </Button>
+          ) : undefined
+        }
       />
     );
   }

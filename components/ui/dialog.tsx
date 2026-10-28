@@ -67,7 +67,9 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
-        className={`relative w-full ${maxWidthClassName} rounded-lg border border-gray-200 bg-white shadow-lg`}
+        // text-left: varios diálogos se abren desde la columna de acciones de
+        // una tabla (alineada a la derecha) y, sin esto, heredaban esa alineación.
+        className={`relative w-full ${maxWidthClassName} rounded-lg border border-gray-200 bg-white text-left shadow-lg`}
       >
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
           <span id="dialog-title" className="text-sm font-medium text-gray-900">

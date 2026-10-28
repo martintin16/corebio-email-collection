@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useMailboxPath } from "@/components/inbox/use-mailbox-path";
 import { cn } from "@/lib/utils";
 
 interface MailboxSplitViewProps {
@@ -20,8 +20,8 @@ interface MailboxSplitViewProps {
  * Programados a la vez.
  */
 export function MailboxSplitView({ listPanel, children }: MailboxSplitViewProps) {
-  const pathname = usePathname();
-  const rest = (pathname ?? "").split("/").filter(Boolean).slice(2); // después de "inbox", "[mailboxId]"
+  // Lo que sigue a "inbox", "[mailboxId]" (se mantiene con Redactar abierto como modal).
+  const { rest } = useMailboxPath();
   // rest = []                  → /inbox/mbx_1            → Recibidos, sin selección
   // rest = [messageId]         → /inbox/mbx_1/msg_1       → Recibidos, mensaje abierto
   // rest = ["sent"]            → /inbox/mbx_1/sent        → Enviados, sin selección

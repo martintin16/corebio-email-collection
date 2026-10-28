@@ -20,6 +20,7 @@ import type {
 // "Todos los contactos" no es un grupo de Google: es una entrada fija arriba
 // de la lista para poder buscar/elegir entre todos sin pasar por un grupo.
 const ALL_GROUP_ID = "__all__";
+const EMPTY_SET: ReadonlySet<string> = new Set();
 
 interface MembersEntry {
   status: "loading" | "loaded" | "error";
@@ -35,6 +36,8 @@ interface RecipientPickerDialogProps {
   directory: ContactsDirectory;
   onRetryDirectory: () => void;
   onAdd: (picked: PickedRecipients) => void;
+  /** Emails que ya están en el campo (en minúscula): se ven tildados y no se pueden destildar acá. */
+  presentEmails?: ReadonlySet<string>;
 }
 
 // Mismo patrón de explorador de dos columnas que ManageDriveDialog (acá la
@@ -50,6 +53,7 @@ export function RecipientPickerDialog({
   directory,
   onRetryDirectory,
   onAdd,
+  presentEmails = EMPTY_SET,
 }: RecipientPickerDialogProps) {
   const { showToast } = useToast();
   const [query, setQuery] = useState("");
@@ -338,6 +342,7 @@ export function RecipientPickerDialog({
                     <ContactRows
                       contacts={searchResults}
                       selected={selected}
+                      present={presentEmails}
                       onToggle={toggleContact}
                     />
                   )}
@@ -387,6 +392,7 @@ export function RecipientPickerDialog({
                     <ContactRows
                       contacts={focusedMembers}
                       selected={selected}
+                      present={presentEmails}
                       onToggle={toggleContact}
                     />
                   )}
@@ -415,28 +421,40 @@ export function RecipientPickerDialog({
 function ContactRows({
   contacts,
   selected,
+  present,
   onToggle,
 }: {
   contacts: Contact[];
   selected: Record<string, Contact>;
+  /** Ya están en el campo: tildados, sin poder tocarlos (para sacarlos, la ✕ del chip). */
+  present: ReadonlySet<string>;
   onToggle: (contact: Contact) => void;
 }) {
   return (
     <ul aria-label="Contactos">
       {contacts.map((contact) => {
-        const checked = selected[contact.id] !== undefined;
+        const alreadyIn = present.has(contact.email.toLowerCase());
+        const checked = alreadyIn || selected[contact.id] !== undefined;
         return (
           <li key={contact.id}>
             <label
               className={cn(
-                "flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-gray-50",
+                "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
+                alreadyIn ? "cursor-default" : "cursor-pointer hover:bg-gray-50",
                 checked && "bg-primary-100/40"
               )}
+              title={alreadyIn ? "Ya está agregado" : undefined}
             >
-              <input type="checkbox" checked={checked} onChange={() => onToggle(contact)} />
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={alreadyIn}
+                onChange={() => onToggle(contact)}
+              />
               <span className="min-w-0 flex-1 truncate text-gray-800">
                 {contact.name} <span className="text-gray-400">&lt;{contact.email}&gt;</span>
               </span>
+              {alreadyIn && <span className="shrink-0 text-[11px] text-gray-400">ya agregado</span>}
             </label>
           </li>
         );

@@ -58,7 +58,8 @@ type SuggestionOption =
 export interface RecipientInputHandle {
   // Agrega grupos enteros como chips (lo usa el form para mandar a Cco los
   // grupos que se eligieron desde el campo "Para").
-  addGroups: (groups: PickedGroup[]) => void;
+  // Devuelve cuántos eran nuevos (los que ya estaban no se repiten).
+  addGroups: (groups: PickedGroup[]) => number;
 }
 
 interface RecipientInputProps {
@@ -347,7 +348,14 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
   }
 
   useImperativeHandle(handleRef, () => ({
-    addGroups: (groups) => apply(mergeGroups(entriesRef.current, groups), draft),
+    addGroups: (groups) => {
+      const current = entriesRef.current;
+      const added = groups.filter(
+        (g) => !current.some((e) => e.kind === "group" && e.groupId === g.id)
+      ).length;
+      apply(mergeGroups(current, groups), draft);
+      return added;
+    },
   }));
 
   function handlePicked(picked: PickedRecipients) {
@@ -469,7 +477,9 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
         onClick={(e) => {
           if (e.target === e.currentTarget) inputRef.current?.focus();
         }}
-        className="flex min-h-[28px] flex-1 flex-wrap items-center gap-1.5"
+        // min-w-0: sin esto, un grupo expandido (muchos chips) ensancha el campo
+        // más allá del formulario en vez de bajar de línea.
+        className="flex min-h-[28px] min-w-0 flex-1 flex-wrap items-center gap-1.5"
       >
         {entries.map((entry) =>
           entry.kind === "person" ? (
@@ -599,6 +609,7 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
         directory={directory}
         onRetryDirectory={loadDirectory}
         onAdd={handlePicked}
+        presentEmails={new Set(emailsOf(entries).map((email) => email.toLowerCase()))}
       />
     </>
   );

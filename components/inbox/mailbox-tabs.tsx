@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useMailboxPath } from "@/components/inbox/use-mailbox-path";
 import { cn } from "@/lib/utils";
 
 interface MailboxTabsProps {
@@ -14,12 +14,7 @@ interface MailboxTabsProps {
 // en qué pestaña se está: nada o un messageId → Recibidos, "sent" (con o
 // sin [sentId] adentro) → Enviados, "scheduled" → Programados.
 export function MailboxTabs({ mailboxId, scheduledCount }: MailboxTabsProps) {
-  const pathname = usePathname();
-  const segments = (pathname ?? "").split("/").filter(Boolean);
-  // segments = ["inbox", mailboxId, ...resto]
-  const sub = segments[2];
-  const active: "inbox" | "sent" | "scheduled" =
-    sub === "sent" ? "sent" : sub === "scheduled" ? "scheduled" : "inbox";
+  const { tab: active } = useMailboxPath();
 
   function tabClass(tab: typeof active) {
     return cn(
