@@ -18,13 +18,19 @@ export function InboxLabelFilter() {
   const noFilter = filterIds.length === 0;
 
   return (
-    <div role="group" aria-label="Filtrar por etiqueta" className="flex flex-wrap gap-1.5 border-b border-gray-200 px-4 py-2.5">
+    // Una sola línea con scroll horizontal: con muchas etiquetas, en varias
+    // líneas le comían el lugar a la lista (este encabezado no scrollea).
+    <div
+      role="group"
+      aria-label="Filtrar por etiqueta"
+      className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-gray-200 px-4 py-2.5 [scrollbar-width:thin]"
+    >
       <button
         type="button"
         onClick={clearFilter}
         aria-pressed={noFilter}
         className={cn(
-          "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+          "shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
           noFilter ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
         )}
       >
@@ -41,7 +47,7 @@ export function InboxLabelFilter() {
             aria-pressed={selected}
             style={{ backgroundColor: colors.background }}
             className={cn(
-              "inline-flex max-w-full items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium text-gray-700 transition-shadow",
+              "inline-flex max-w-[160px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium text-gray-700 transition-shadow",
               selected ? "ring-2 ring-gray-800" : "hover:ring-1 hover:ring-gray-300"
             )}
           >

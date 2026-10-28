@@ -5,13 +5,22 @@ import { EditIcon, CopyIcon, TrashIcon } from "@/components/icons";
 import type { MessageTemplate } from "@/lib/types/template";
 
 const DAY = 24 * 60 * 60 * 1000;
+const AR_TIME_ZONE = "America/Argentina/Buenos_Aires";
 
-// "hace 2 días" hasta una semana; después, la fecha corta ("12 oct").
+/** Día del calendario en Argentina, como número (para restar días). */
+function dayNumber(date: Date): number {
+  const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: AR_TIME_ZONE }).format(date); // 2026-10-28
+  return Math.round(Date.parse(`${ymd}T00:00:00Z`) / DAY);
+}
+
+// "hoy", "ayer", "hace 2 días" hasta una semana; después, la fecha corta ("12 oct").
+// Por día del calendario, no por horas: algo de anoche a las 23 es "ayer"
+// aunque hayan pasado menos de 24 horas.
 function formatEdited(iso: string): string | null {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
-  const days = Math.floor((Date.now() - date.getTime()) / DAY);
-  if (days < 1) return "hoy";
+  const days = dayNumber(new Date()) - dayNumber(date);
+  if (days <= 0) return "hoy";
   if (days === 1) return "ayer";
   if (days < 7) return `hace ${days} días`;
   return new Intl.DateTimeFormat("es-AR", {

@@ -237,6 +237,15 @@ selector de casilla mantienen la pestaña en la que se estaba (`useMailboxPath`)
 campo aparecen tildados ("ya agregado"); elegir un grupo que ya está en Cco avisa en vez de no hacer
 nada; los diálogos fuerzan `text-left` (heredaban la alineación de la columna de acciones de las tablas).
 
+**Mucho contenido (revisión de volumen):** el shell tiene alto fijo (`h-dvh`) y cada columna scrollea por su
+cuenta: con una lista larga quedan fijos el menú, el selector de casilla, las pestañas y el detalle. Los
+diálogos (`Dialog` y el modal de Redactar) tienen alto máximo: título y X arriba, cuerpo con scroll, y en
+Redactar el pie con "Enviar" queda pegado abajo (sticky). La lista de Gestionar Drive y el menú de
+plantillas tienen scroll propio; el filtro de etiquetas es una sola línea con scroll horizontal. En el
+detalle, muchos destinatarios se muestran como "para a, b, c y N más" (`AddressSummary`), y los textos
+largos sin espacios, imágenes y tablas anchas no ensanchan la columna (`.email-body`). La tabla de
+usuarios resume las casillas ("a, b y 3 más").
+
 **Reenviar también un recibido** (agregado después, ver Addendum 5 del PDF): el detalle de un recibido
 tiene "Reenviar" al lado de "Responder" (mismo `ForwardButton`, vía `secondaryAction` de `ReplyBox`).
 Redactar lo distingue por la URL: `?forward=<id>&mailbox=<casilla>` es un recibido (lo pide con

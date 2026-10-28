@@ -4,6 +4,18 @@ import { ShieldIcon } from "@/components/icons";
 import { UserRowActions } from "@/components/admin/user-row-actions";
 import type { AdminUser, AdminMailbox, UserStatus } from "@/lib/types/admin";
 
+/**
+ * "a@x.com, b@x.com y 3 más": con muchas casillas por persona, la lista
+ * completa hacía cada fila altísima. La lista entera queda en el title
+ * (y en "Editar permisos").
+ */
+function mailboxesSummary(user: AdminUser, empty: string): { text: string; title?: string } {
+  const emails = user.mailboxAccess.map((m) => m.email);
+  if (emails.length === 0) return { text: empty };
+  if (emails.length <= 2) return { text: emails.join(", ") };
+  return { text: `${emails.slice(0, 2).join(", ")} y ${emails.length - 2} más`, title: emails.join(", ") };
+}
+
 const STATUS_TONE: Record<UserStatus, "success" | "warning" | "neutral"> = {
   active: "success",
   invited: "warning",
@@ -69,8 +81,11 @@ export function UsersTable({
               </div>
               <div className="flex items-start justify-between gap-3">
                 <dt className="shrink-0 text-gray-500">Casillas</dt>
-                <dd className="text-right text-gray-600">
-                  {user.mailboxAccess.map((m) => m.email).join(", ") || "Sin casillas"}
+                <dd
+                  className="min-w-0 text-right text-gray-600 [overflow-wrap:anywhere]"
+                  title={mailboxesSummary(user, "Sin casillas").title}
+                >
+                  {mailboxesSummary(user, "Sin casillas").text}
                 </dd>
               </div>
             </dl>
@@ -103,8 +118,8 @@ export function UsersTable({
                 <td className="px-4 py-3">
                   <Badge tone={user.role === "admin" ? "primary" : "neutral"}>{user.role}</Badge>
                 </td>
-                <td className="px-4 py-3 text-gray-600">
-                  {user.mailboxAccess.map((m) => m.email).join(", ") || "—"}
+                <td className="px-4 py-3 text-gray-600" title={mailboxesSummary(user, "—").title}>
+                  {mailboxesSummary(user, "—").text}
                 </td>
                 <td className="px-4 py-3">
                   <Badge tone={STATUS_TONE[user.status]}>{STATUS_LABEL[user.status]}</Badge>

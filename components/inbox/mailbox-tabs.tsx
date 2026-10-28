@@ -26,7 +26,7 @@ export function MailboxTabs({ mailboxId, scheduledCount }: MailboxTabsProps) {
   }
 
   return (
-    <div role="tablist" aria-label="Vista de la casilla" className="flex border-b border-gray-200">
+    <div role="tablist" aria-label="Vista de la casilla" className="flex shrink-0 border-b border-gray-200">
       <Link href={`/inbox/${mailboxId}`} role="tab" aria-selected={active === "inbox"} className={tabClass("inbox")}>
         Recibidos
       </Link>

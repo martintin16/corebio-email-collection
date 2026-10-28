@@ -520,7 +520,8 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
           value={draft}
           disabled={disabled}
           placeholder={
-            hasEntries ? "Escribir o buscar…" : placeholder ?? "nombre@mail.com o buscá un contacto"
+            // Corto a propósito: en el celular el campo es angosto y uno largo se cortaba.
+            hasEntries ? "Escribir o buscar…" : placeholder ?? "Email o contacto"
           }
           onChange={(e) => handleDraftChange(e.target.value)}
           onKeyDown={handleKeyDown}

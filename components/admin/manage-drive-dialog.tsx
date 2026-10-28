@@ -169,7 +169,7 @@ export function ManageDriveDialog({
           ))}
         </div>
 
-        <div className="min-h-[180px] rounded-md border border-gray-200">
+        <div className="max-h-[50dvh] min-h-[180px] overflow-y-auto rounded-md border border-gray-200">
           {state === "loading" && (
             <div className="flex flex-col items-center gap-2 py-10 text-xs text-gray-500">
               <span

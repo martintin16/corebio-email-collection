@@ -128,7 +128,7 @@ export function TemplatePicker({ mailboxId, hasContent, onInsert }: TemplatePick
             style={floatingStyles}
             role="menu"
             aria-label="Plantillas"
-            className="z-50 w-64 rounded-md border border-gray-200 bg-white p-1 shadow-md"
+            className="z-50 max-h-72 w-64 overflow-y-auto rounded-md border border-gray-200 bg-white p-1 shadow-md"
           >
             {state === "loading" && (
               <div className="px-3 py-4 text-center text-xs text-gray-400">Cargando plantillas…</div>

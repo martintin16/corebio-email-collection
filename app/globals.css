@@ -58,3 +58,22 @@ body {
   color: #0f766e;
   text-decoration: underline;
 }
+
+/* HTML de mails (Enviados también trae mails mandados desde Gmail): que nada
+   ensanche la columna. Imágenes al ancho disponible, tablas anchas con su
+   propio scroll y palabras largas (links) que bajan de línea. */
+.email-body {
+  overflow-wrap: anywhere;
+}
+.email-body img {
+  max-width: 100%;
+  height: auto;
+}
+.email-body table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.email-body pre {
+  white-space: pre-wrap;
+}

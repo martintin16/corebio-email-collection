@@ -69,9 +69,11 @@ export function Dialog({
         aria-labelledby="dialog-title"
         // text-left: varios diálogos se abren desde la columna de acciones de
         // una tabla (alineada a la derecha) y, sin esto, heredaban esa alineación.
-        className={`relative w-full ${maxWidthClassName} rounded-lg border border-gray-200 bg-white text-left shadow-lg`}
+        // max-h + flex-col: con mucho contenido (una carpeta de Drive enorme,
+        // muchas casillas) el título y la X quedan a la vista y scrollea el cuerpo.
+        className={`relative flex max-h-[calc(100dvh-2rem)] w-full ${maxWidthClassName} flex-col rounded-lg border border-gray-200 bg-white text-left shadow-lg`}
       >
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3">
           <span id="dialog-title" className="text-sm font-medium text-gray-900">
             {title}
           </span>
@@ -85,7 +87,7 @@ export function Dialog({
             <XIcon className="h-4 w-4" />
           </button>
         </div>
-        <div className="relative p-4">{children}</div>
+        <div className="relative min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
       </div>
     </div>
   );

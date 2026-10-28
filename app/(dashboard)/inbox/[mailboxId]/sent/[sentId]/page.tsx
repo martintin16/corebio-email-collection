@@ -4,6 +4,7 @@ import { getSentMessage } from "@/lib/api/messages";
 import { getMailboxesForCurrentUser } from "@/lib/api/mailboxes";
 import { formatFullDate } from "@/lib/format";
 import { ForwardButton } from "@/components/inbox/forward-button";
+import { AddressSummary } from "@/components/inbox/address-summary";
 import { AttachmentList } from "@/components/inbox/attachment-list";
 import { ArrowLeftIcon } from "@/components/icons";
 
@@ -31,11 +32,27 @@ export default async function SentMessagePage({
         Volver a enviados
       </Link>
 
-      <h1 className="mb-1 text-lg font-medium text-gray-900">{message.subject}</h1>
+      <h1 className="mb-1 break-words text-lg font-medium text-gray-900 [overflow-wrap:anywhere]">
+        {message.subject}
+      </h1>
       <p className="text-xs text-gray-500">
-        Para {message.to || "(sin destinatarios visibles)"}
-        {message.cc && <> · cc {message.cc}</>}
-        {message.bcc && <> · cco {message.bcc}</>}
+        {message.to ? (
+          <AddressSummary prefix="Para" value={message.to} />
+        ) : (
+          "Para (sin destinatarios visibles)"
+        )}
+        {message.cc && (
+          <>
+            {" "}
+            · <AddressSummary prefix="cc" value={message.cc} />
+          </>
+        )}
+        {message.bcc && (
+          <>
+            {" "}
+            · <AddressSummary prefix="cco" value={message.bcc} />
+          </>
+        )}
       </p>
       <p className="mb-4 mt-0.5 text-xs text-gray-400">
         <time dateTime={message.sentAt}>{formatFullDate(message.sentAt)}</time>

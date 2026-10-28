@@ -43,3 +43,28 @@ export function serializeRecipients(emails: string[]): string {
 export function normalizeText(value: string): string {
   return value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
+
+/**
+ * Parte un header de direcciones ("Ana <a@x.com>, "Pérez, Juan" <j@y.com>")
+ * por las comas que separan direcciones, no por las que van dentro de un
+ * nombre entre comillas o de un <email>. Para mostrar, no para validar.
+ */
+export function splitAddressList(value: string): string[] {
+  const parts: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  let inAngle = false;
+  for (const char of value) {
+    if (char === '"') inQuotes = !inQuotes;
+    else if (char === "<") inAngle = true;
+    else if (char === ">") inAngle = false;
+    if (char === "," && !inQuotes && !inAngle) {
+      if (current.trim()) parts.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  if (current.trim()) parts.push(current.trim());
+  return parts;
+}

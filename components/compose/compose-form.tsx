@@ -576,7 +576,9 @@ export function ComposeForm({
         </div>
       )}
 
-      <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-3">
+      {/* Pie pegado abajo del área que scrollea (modal) o de la página (/compose):
+          con muchos destinatarios o adjuntos, "Enviar" siempre queda a la vista. */}
+      <div className="sticky bottom-0 z-10 mt-4 flex items-center justify-between border-t border-gray-200 bg-white pb-4 pt-3">
         <div className="flex items-center gap-3">
           <label className="cursor-pointer text-gray-400 transition-colors hover:text-gray-600">
             <PaperclipIcon className="h-4 w-4" />

@@ -4,6 +4,7 @@ import { getMessage } from "@/lib/api/messages";
 import { getMailboxesForCurrentUser } from "@/lib/api/mailboxes";
 import { formatFullDate } from "@/lib/format";
 import { ForwardButton } from "@/components/inbox/forward-button";
+import { AddressSummary } from "@/components/inbox/address-summary";
 import { ReplyBox } from "@/components/inbox/reply-box";
 import { LabelPicker } from "@/components/inbox/label-picker";
 import { MessageLabelChips } from "@/components/inbox/message-label-chips";
@@ -36,7 +37,9 @@ export default async function MessagePage({
       </Link>
 
       <div className="mb-1 flex items-start justify-between gap-3">
-        <h1 className="text-lg font-medium text-gray-900">{message.subject}</h1>
+        <h1 className="min-w-0 break-words text-lg font-medium text-gray-900 [overflow-wrap:anywhere]">
+          {message.subject}
+        </h1>
         <LabelPicker
           mailboxId={params.mailboxId}
           messageId={message.id}
@@ -45,8 +48,14 @@ export default async function MessagePage({
       </div>
       <MessageLabelChips messageId={message.id} initialLabelIds={message.labelIds} />
       <p className="text-xs text-gray-500">
-        {message.from.name} &lt;{message.from.email}&gt; · para {message.to}
-        {message.cc && <> · cc {message.cc}</>}
+        {message.from.name} &lt;{message.from.email}&gt; ·{" "}
+        <AddressSummary prefix="para" value={message.to} />
+        {message.cc && (
+          <>
+            {" "}
+            · <AddressSummary prefix="cc" value={message.cc} />
+          </>
+        )}
       </p>
       <p className="mb-4 mt-0.5 text-xs text-gray-400">
         <time dateTime={message.receivedAt}>{formatFullDate(message.receivedAt)}</time>
@@ -54,7 +63,8 @@ export default async function MessagePage({
 
       <div className="mb-5 border-t border-gray-200" />
 
-      <p className="whitespace-pre-line text-sm leading-relaxed text-gray-800">
+      {/* overflow-wrap: un link o una dirección larga sin espacios no ensancha la columna. */}
+      <p className="whitespace-pre-line text-sm leading-relaxed text-gray-800 [overflow-wrap:anywhere]">
         {message.body}
       </p>
 

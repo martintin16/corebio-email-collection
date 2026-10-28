@@ -65,9 +65,11 @@ function ComposeModalShellInner({ children, title }: ComposeModalShellProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="compose-modal-title"
-        className="relative w-full max-w-[420px] rounded-lg border border-gray-200 bg-white shadow-lg"
+        // Alto máximo: con muchos destinatarios o adjuntos, el título y la X
+        // quedan arriba, "Enviar" abajo (pie sticky en ComposeForm) y scrollea el medio.
+        className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-[420px] flex-col rounded-lg border border-gray-200 bg-white shadow-lg"
       >
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3">
           <span id="compose-modal-title" className="text-sm font-medium text-gray-900">
             {title}
           </span>
@@ -81,7 +83,7 @@ function ComposeModalShellInner({ children, title }: ComposeModalShellProps) {
             <XIcon className="h-4 w-4" />
           </button>
         </div>
-        <div className="p-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4">{children}</div>
       </div>
     </div>
   );

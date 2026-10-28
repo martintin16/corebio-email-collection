@@ -18,15 +18,19 @@ export function DashboardShell({ role, userEmail, children, modal }: DashboardSh
 
   return (
     <ToastProvider>
-      <div className="flex min-h-screen bg-white">
+      {/* Alto fijo (h-dvh) y no mínimo: así cada columna scrollea por su cuenta
+          (la lista de mails, el detalle, el menú) en vez de la página entera.
+          Con min-h-screen la página crecía con la lista y se iban de la
+          pantalla el menú, las pestañas y el detalle. */}
+      <div className="flex h-dvh overflow-hidden bg-white">
         {/* Desktop: rail persistente */}
-        <aside className="hidden w-56 shrink-0 border-r border-gray-200 bg-gray-50 md:flex">
+        <aside className="hidden w-56 shrink-0 overflow-y-auto border-r border-gray-200 bg-gray-50 md:flex">
           <SidebarContent role={role} userEmail={userEmail} />
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Mobile: topbar con hamburguesa, no existe en desktop */}
-          <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3 md:hidden">
+          <div className="flex shrink-0 items-center gap-3 border-b border-gray-200 px-4 py-3 md:hidden">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
@@ -38,7 +42,7 @@ export function DashboardShell({ role, userEmail, children, modal }: DashboardSh
             <span className="text-sm font-medium text-gray-900">corebio mail</span>
           </div>
 
-          <main className="flex-1 overflow-y-auto">{children}</main>
+          <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
         </div>
 
         {/* Mobile: drawer, montado solo mientras está abierto */}

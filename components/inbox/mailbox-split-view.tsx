@@ -31,17 +31,18 @@ export function MailboxSplitView({ listPanel, children }: MailboxSplitViewProps)
     rest.length > 0 && rest[0] !== "scheduled" && !(rest[0] === "sent" && rest.length === 1);
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full min-h-0">
       <div
         className={cn(
-          "w-full flex-col border-r border-gray-200 md:flex md:w-full md:max-w-[280px] md:shrink-0",
+          // min-h-0: la lista scrollea adentro de esta columna (ver MailboxListPanel).
+          "min-h-0 w-full flex-col border-r border-gray-200 md:flex md:w-full md:max-w-[280px] md:shrink-0",
           hasSelection ? "hidden" : "flex"
         )}
       >
         {listPanel}
       </div>
 
-      <div className={cn("min-w-0 flex-1 md:block", hasSelection ? "block" : "hidden")}>
+      <div className={cn("min-h-0 min-w-0 flex-1 overflow-y-auto md:block", hasSelection ? "block" : "hidden")}>
         {children}
       </div>
     </div>

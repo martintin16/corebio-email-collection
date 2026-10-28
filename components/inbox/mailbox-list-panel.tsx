@@ -27,7 +27,7 @@ export function MailboxListPanel({ mailboxes, mailbox, messages, sent, scheduled
 
   return (
     <>
-      <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-3">
+      <div className="flex shrink-0 items-center gap-2 border-b border-gray-200 px-4 py-3">
         <div className="min-w-0 flex-1">
           <MailboxSwitcher mailboxes={mailboxes} current={mailbox} />
         </div>
@@ -38,7 +38,8 @@ export function MailboxListPanel({ mailboxes, mailbox, messages, sent, scheduled
       {/* Las etiquetas son de las conversaciones recibidas — Enviados y
           Programados no tienen nada para filtrar por etiqueta. */}
       {tab === "inbox" && <InboxLabelFilter />}
-      <div className="flex-1 overflow-y-auto">
+      {/* Encabezado fijo arriba; solo esto scrollea. */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {tab === "sent" ? (
           <SentMessageList mailboxId={mailbox.id} messages={sent} canSend={mailbox.canSend} />
         ) : tab === "scheduled" ? (

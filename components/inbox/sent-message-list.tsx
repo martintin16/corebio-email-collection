@@ -28,7 +28,7 @@ export function SentMessageList({ mailboxId, messages, canSend = false }: SentMe
       <EmptyState
         icon={SentIcon}
         title="No hay mensajes enviados"
-        description="Los mails que mandes desde esta casilla van a aparecer acá."
+        description="Los mails enviados desde esta casilla van a aparecer acá."
         action={
           canSend ? (
             // Misma intercepting route que "Redactar" del menú, con esta casilla en "De".
