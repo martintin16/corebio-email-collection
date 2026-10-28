@@ -8,14 +8,15 @@ import { SentMessageList } from "@/components/inbox/sent-message-list";
 import { ScheduledMessageList } from "@/components/inbox/scheduled-message-list";
 import { MailboxTabs } from "@/components/inbox/mailbox-tabs";
 import { InboxLabelFilter } from "@/components/inbox/inbox-label-filter";
-import type { Mailbox, MessageSummary, SentMessageSummary } from "@/lib/types/mail";
+import type { Mailbox, MessagePage, MessageSummary, SentMessageSummary } from "@/lib/types/mail";
 import type { ScheduledMessage } from "@/lib/types/scheduled-message";
 
 interface MailboxListPanelProps {
   mailboxes: Mailbox[];
   mailbox: Mailbox;
-  messages: MessageSummary[];
-  sent: SentMessageSummary[];
+  /** Primeras páginas (25); "Cargar más" pide las siguientes desde cada lista. */
+  messages: MessagePage<MessageSummary>;
+  sent: MessagePage<SentMessageSummary>;
   scheduled: ScheduledMessage[];
 }
 
@@ -41,11 +42,11 @@ export function MailboxListPanel({ mailboxes, mailbox, messages, sent, scheduled
       {/* Encabezado fijo arriba; solo esto scrollea. */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {tab === "sent" ? (
-          <SentMessageList mailboxId={mailbox.id} messages={sent} canSend={mailbox.canSend} />
+          <SentMessageList mailboxId={mailbox.id} firstPage={sent} canSend={mailbox.canSend} />
         ) : tab === "scheduled" ? (
           <ScheduledMessageList mailboxId={mailbox.id} initialItems={scheduled} />
         ) : (
-          <MessageList mailboxId={mailbox.id} messages={messages} />
+          <MessageList mailboxId={mailbox.id} firstPage={messages} />
         )}
       </div>
     </>

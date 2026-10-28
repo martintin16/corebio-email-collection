@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import type { SentMessageSummary } from "@/lib/types/mail";
+import type { MessagePage, SentMessageSummary } from "@/lib/types/mail";
+import { loadMoreSent } from "@/lib/api/messages";
+import { usePagedList } from "@/components/inbox/use-paged-list";
+import { LoadMoreButton } from "@/components/inbox/load-more-button";
 import { formatMessageDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -11,7 +14,7 @@ import { SentIcon } from "@/components/icons";
 
 interface SentMessageListProps {
   mailboxId: string;
-  messages: SentMessageSummary[];
+  firstPage: MessagePage<SentMessageSummary>;
   /** Con permiso de envío, la lista vacía ofrece "Redactar" desde esta casilla. */
   canSend?: boolean;
 }
@@ -19,9 +22,11 @@ interface SentMessageListProps {
 // Mismo patrón visual que MessageList (Recibidos), pero mostrando "Para"
 // en vez de remitente y sin punto de no-leído — un enviado no tiene ese
 // estado.
-export function SentMessageList({ mailboxId, messages, canSend = false }: SentMessageListProps) {
+export function SentMessageList({ mailboxId, firstPage, canSend = false }: SentMessageListProps) {
   const params = useParams<{ sentId?: string }>();
   const router = useRouter();
+  const paged = usePagedList(firstPage, (token) => loadMoreSent(mailboxId, token));
+  const messages = paged.items;
 
   if (messages.length === 0) {
     return (
@@ -42,6 +47,7 @@ export function SentMessageList({ mailboxId, messages, canSend = false }: SentMe
   }
 
   return (
+    <>
     <ul aria-label="Mensajes enviados" className="divide-y divide-gray-200">
       {messages.map((message) => {
         const active = params.sentId === message.id;
@@ -70,5 +76,9 @@ export function SentMessageList({ mailboxId, messages, canSend = false }: SentMe
         );
       })}
     </ul>
+    {paged.hasMore && (
+      <LoadMoreButton loading={paged.loading} error={paged.error} onClick={() => void paged.load()} />
+    )}
+    </>
   );
 }

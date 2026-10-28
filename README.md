@@ -246,6 +246,12 @@ detalle, muchos destinatarios se muestran como "para a, b, c y N más" (`Address
 largos sin espacios, imágenes y tablas anchas no ensanchan la columna (`.email-body`). La tabla de
 usuarios resume las casillas ("a, b y 3 más").
 
+**Más de 25 mails (Fase 10 del backend):** Recibidos y Enviados llegan de a una página
+(`{ items, nextPageToken }`). El layout pide la primera; al final de cada lista, "Cargar más" pide la
+siguiente (`loadMoreMessages` / `loadMoreSent`, acciones con `ActionResult`). `usePagedList` conserva lo
+cargado cuando la primera página se vuelve a pedir sola (refresco, enviar): si un mail nuevo empuja al
+último de la primera página, no se pierde. El filtro por etiqueta sigue siendo sobre lo ya cargado.
+
 **Reenviar también un recibido** (agregado después, ver Addendum 5 del PDF): el detalle de un recibido
 tiene "Reenviar" al lado de "Responder" (mismo `ForwardButton`, vía `secondaryAction` de `ReplyBox`).
 Redactar lo distingue por la URL: `?forward=<id>&mailbox=<casilla>` es un recibido (lo pide con

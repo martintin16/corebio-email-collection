@@ -4,6 +4,7 @@ import * as http from "./http.server";
 import { ApiError, type ActionResult } from "./errors";
 import type {
   MessageDetail,
+  MessagePage,
   MessageSummary,
   SentMessageDetail,
   SentMessageSummary,
@@ -29,8 +30,21 @@ async function orNull<T>(load: () => Promise<T>): Promise<T | null> {
 
 // --- Recibidos ----------------------------------------------------------------
 
-export async function getMessages(mailboxId: string): Promise<MessageSummary[]> {
+/** `?pageToken=` opcional (la página siguiente). */
+const page = (pageToken?: string) =>
+  pageToken ? `?pageToken=${encodeURIComponent(pageToken)}` : "";
+
+/** La primera página de Recibidos (la pide el layout de la casilla). */
+export async function getMessages(mailboxId: string): Promise<MessagePage<MessageSummary>> {
   return http.get(`${box(mailboxId)}/messages`);
+}
+
+/** "Cargar más" en Recibidos: la página siguiente. */
+export async function loadMoreMessages(
+  mailboxId: string,
+  pageToken: string
+): Promise<ActionResult<MessagePage<MessageSummary>>> {
+  return http.action(() => http.get(`${box(mailboxId)}/messages${page(pageToken)}`));
 }
 
 /** Abrirlo lo marca como leído (como en Gmail). */
@@ -45,8 +59,17 @@ export async function getMessage(
 
 // --- Enviados -----------------------------------------------------------------
 
-export async function getSentMessages(mailboxId: string): Promise<SentMessageSummary[]> {
+/** La primera página de Enviados. */
+export async function getSentMessages(mailboxId: string): Promise<MessagePage<SentMessageSummary>> {
   return http.get(`${box(mailboxId)}/sent`);
+}
+
+/** "Cargar más" en Enviados. */
+export async function loadMoreSent(
+  mailboxId: string,
+  pageToken: string
+): Promise<ActionResult<MessagePage<SentMessageSummary>>> {
+  return http.action(() => http.get(`${box(mailboxId)}/sent${page(pageToken)}`));
 }
 
 export async function getSentMessage(

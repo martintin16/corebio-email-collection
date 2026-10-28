@@ -54,3 +54,12 @@ export interface SentMessageDetail extends SentMessageSummary {
   bcc: string;
   attachments: AttachmentInfo[];
 }
+
+/**
+ * Una página de Recibidos o Enviados (25). `nextPageToken` pide la siguiente
+ * ("Cargar más"); null = no hay más.
+ */
+export interface MessagePage<T> {
+  items: T[];
+  nextPageToken: string | null;
+}

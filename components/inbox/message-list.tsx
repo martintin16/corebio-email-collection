@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import type { MessageSummary } from "@/lib/types/mail";
+import type { MessagePage, MessageSummary } from "@/lib/types/mail";
+import { loadMoreMessages } from "@/lib/api/messages";
+import { usePagedList } from "@/components/inbox/use-paged-list";
+import { LoadMoreButton } from "@/components/inbox/load-more-button";
 import { formatMessageDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -14,22 +17,24 @@ import { useMailboxLabels } from "@/components/inbox/mailbox-labels-provider";
 
 interface MessageListProps {
   mailboxId: string;
-  messages: MessageSummary[];
+  firstPage: MessagePage<MessageSummary>;
 }
 
 // Cuántos chips de etiqueta caben en una fila de la lista antes de resumir
 // el resto como "+N" — el panel es angosto (280px), más de tres no entran.
 const MAX_CHIPS_PER_ROW = 3;
 
-export function MessageList({ mailboxId, messages }: MessageListProps) {
+export function MessageList({ mailboxId, firstPage }: MessageListProps) {
   const params = useParams<{ messageId?: string }>();
+  const paged = usePagedList(firstPage, (token) => loadMoreMessages(mailboxId, token));
+  const messages = paged.items;
   const { labelsById, getLabelIds, filterIds, clearFilter } = useMailboxLabels();
   // Abiertos en esta pantalla: el backend los marca leídos al abrirlos, pero
   // la lista viene del layout, que Next no vuelve a pedir al abrir un mail.
-  // Se marcan acá al momento; cuando llega una lista nueva del servidor, ya
-  // viene con el dato real y esto se vacía.
+  // Se marcan acá al momento. No se vacía al llegar una lista nueva: lo
+  // cargado con "Cargar más" no se vuelve a pedir, y un mail abierto ya
+  // quedó leído en Gmail.
   const [openedIds, setOpenedIds] = useState<ReadonlySet<string>>(new Set());
-  useEffect(() => setOpenedIds(new Set()), [messages]);
   // El que está abierto también (por ejemplo, si se entró directo por URL).
   const isUnread = (message: MessageSummary) =>
     message.unread && !openedIds.has(message.id) && params.messageId !== message.id;
@@ -143,6 +148,9 @@ export function MessageList({ mailboxId, messages }: MessageListProps) {
           );
         })}
       </ul>
+      {paged.hasMore && (
+        <LoadMoreButton loading={paged.loading} error={paged.error} onClick={() => void paged.load()} />
+      )}
     </>
   );
 }
