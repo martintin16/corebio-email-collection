@@ -260,6 +260,10 @@ En la lista de Programados, más de 2 adjuntos se resumen ("📎 10 adjuntos · 
 tocarlos. Cerrar el modal con algo sin enviar (X, Escape, fondo o Cancelar) pregunta "¿Descartar el
 mensaje?" (`ComposeBlockingProvider.requestClose`).
 
+**Antes del deploy:** pantalla de error para todo el panel (`app/(dashboard)/error.tsx`, con "Reintentar" y
+"Volver a la bandeja"), 404 general en castellano (`app/not-found.tsx`) y `app/global-error.tsx` como último
+recurso. Favicon (`app/icon.svg`): el mismo sobre blanco sobre verde del menú.
+
 **Reenviar también un recibido** (agregado después, ver Addendum 5 del PDF): el detalle de un recibido
 tiene "Reenviar" al lado de "Responder" (mismo `ForwardButton`, vía `secondaryAction` de `ReplyBox`).
 Redactar lo distingue por la URL: `?forward=<id>&mailbox=<casilla>` es un recibido (lo pide con

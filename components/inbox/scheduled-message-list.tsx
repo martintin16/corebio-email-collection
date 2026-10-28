@@ -55,6 +55,9 @@ export function ScheduledMessageList({ initialItems }: ScheduledMessageListProps
         return;
       }
       setItems((prev) => prev.filter((m) => m.id !== cancelTarget.id));
+      // La acción ya revalida /inbox; esto asegura que el contador
+      // "Programados (N)" del encabezado baje junto con la fila.
+      router.refresh();
       showToast("success", "Envío cancelado.");
       setCancelTarget(null);
     } catch {

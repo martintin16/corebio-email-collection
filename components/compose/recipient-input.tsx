@@ -668,7 +668,7 @@ function PersonChip({
       className={cn(
         // Ancho máximo: con la dirección entera cada chip ocupaba un renglón
         // y con muchos destinatarios el campo se volvía una columna larga.
-        "inline-flex max-w-[11rem] items-center gap-1 rounded-full py-0.5 pl-2.5 pr-1 text-xs",
+        "inline-flex max-w-[7rem] items-center gap-1 rounded-full py-0.5 pl-2.5 pr-1 text-xs",
         valid
           ? subtle
             ? "border border-gray-200 bg-white text-gray-800"
