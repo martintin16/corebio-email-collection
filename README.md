@@ -131,11 +131,13 @@ en el futuro; si no, muestra el error dentro del mismo menú sin cerrarlo.
 **Fechas:** se guardan en UTC (`scheduledAt` como ISO 8601) y se muestran siempre en horario de
 Argentina — así es como se van a persistir cuando exista el backend real.
 
-**Limitación conocida (mock):** al igual que el resto de las acciones simuladas del proyecto (crear
-usuario, reconectar casilla, etc.), `scheduleMessage()` no persiste en ningún lado — solo simula el
-viaje de ida y vuelta y muestra el toast de éxito. La etapa 5 ("Programados") va a mostrar su propio
-listado de ejemplo en vez de reflejar lo que se programó acá; se van a unir cuando el backend exista
-de verdad y ambas puntas lean/escriban del mismo lugar.
+**Editar un programado** (Addendum 5): el botón principal es **"Guardar cambios"** y mantiene la fecha
+(el PATCH va sin `scheduledAt`). Arriba se ve "Programado para el lunes 2 de noviembre, 08:00". El menú
+suma "Enviar ahora" arriba de las opciones de siempre, y "Elegir fecha y hora" abre con la fecha que ya
+tiene. Si la fecha ya no se puede mantener (falló, o falta menos de un minuto y pico), el botón pasa a
+"Guardar y enviar ahora" y el aviso lo explica. Las fechas se muestran en 24 h ("el lunes 2 de
+noviembre, 08:00", `formatScheduledAt` usa `formatFullDate`). La lista de Programados muestra los
+adjuntos como chips que se pueden descargar (`AttachmentList` con `source: scheduled`).
 
 **Por qué no hay "send later" nativo:** la Gmail API no tiene ese endpoint — el backend va a necesitar
 guardar el mensaje con su fecha y un job periódico propio (ver el PDF de especificación) que lo
@@ -226,6 +228,14 @@ del sidebar) con el asunto prefijado "Fwd: " y el cuerpo original citado debajo,
 la persona elige a quién reenviarlo. Comparte el mecanismo `initialValues` de `ComposeForm` que ya
 existía para "Editar" un envío programado (etapa 5); ambos casos ahora conviven en el mismo `page.tsx`
 de Compose vía `?edit=` o `?forward=` (mutuamente excluyentes, `edit` gana si por error vinieran los dos).
+
+**Detalles del Addendum 5 sin cambios de diseño:** con una sola casilla, Redactar muestra "De" como texto
+y Plantillas dice de qué casilla son; el contador de destinatarios está abajo, junto a los botones (las
+sugerencias de contactos lo tapaban); la lista de atrás de un modal (Redactar, Reenviar, Editar) y el
+selector de casilla mantienen la pestaña en la que se estaba (`useMailboxPath`); Enviados vacío ofrece
+"Redactar" con esa casilla (`/compose?mailbox=<id>`); en "Elegir de contactos" los que ya están en el
+campo aparecen tildados ("ya agregado"); elegir un grupo que ya está en Cco avisa en vez de no hacer
+nada; los diálogos fuerzan `text-left` (heredaban la alineación de la columna de acciones de las tablas).
 
 **Reenviar también un recibido** (agregado después, ver Addendum 5 del PDF): el detalle de un recibido
 tiene "Reenviar" al lado de "Responder" (mismo `ForwardButton`, vía `secondaryAction` de `ReplyBox`).
