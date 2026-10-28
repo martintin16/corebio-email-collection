@@ -7,7 +7,7 @@ export default async function ComposeModalPage({
 }: {
   searchParams: ComposeSearchParams;
 }) {
-  const { mailboxes, title, initialValues, editingScheduledId, carriedAttachments } =
+  const { mailboxes, title, initialValues, editingScheduled, carriedAttachments } =
     await loadComposePrefill(searchParams);
 
   return (
@@ -16,7 +16,7 @@ export default async function ComposeModalPage({
         mailboxes={mailboxes}
         mode="modal"
         initialValues={initialValues}
-        editingScheduledId={editingScheduledId}
+        editingScheduled={editingScheduled}
         carriedAttachments={carriedAttachments}
       />
     </ComposeModalShell>

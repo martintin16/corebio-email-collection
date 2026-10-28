@@ -2,6 +2,8 @@
 // del día — igual que Gmail, para no obligar a abrir el selector de fecha
 // en el caso más común (mandar "mañana a primera hora", etc).
 
+import { formatFullDate } from "@/lib/format";
+
 export interface QuickScheduleOption {
   id: string;
   label: string;
@@ -77,20 +79,14 @@ export function formatTime(date: Date): string {
   return date.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
+    // 24 h: "08:00", no "08:00 a. m." (igual que el resto de la app).
+    hourCycle: "h23",
   });
 }
 
+/** "el lunes 2 de noviembre, 08:00": mismo formato que la fecha del detalle de un mensaje. */
 export function formatScheduledAt(date: Date): string {
-  const now = new Date();
-  const sameYear = date.getFullYear() === now.getFullYear();
-  const datePart = sameYear
-    ? date.toLocaleDateString("es-AR", { day: "2-digit", month: "long" })
-    : date.toLocaleDateString("es-AR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      });
-  return `el ${datePart} a las ${formatTime(date)}`;
+  return `el ${formatFullDate(date.toISOString())}`;
 }
 
 export function weekdayLabel(date: Date): string {

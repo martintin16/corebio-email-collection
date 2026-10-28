@@ -17,6 +17,19 @@ interface SendSplitButtonProps {
   // onSend y el botón se vuelve type="button" con su propio onClick.
   onSend?: () => void;
   sendLabel?: string;
+  /** Opciones que van arriba de todo en el menú (ej. "Enviar ahora" al editar un programado). */
+  extraActions?: { label: string; onSelect: () => void }[];
+  /** Fecha con la que abre "Elegir fecha y hora" (ej. la que ya tiene un programado). */
+  initialDate?: Date;
+}
+
+/** Fecha y hora locales en el formato de los <input type="date|time">. */
+function toInputValues(date: Date): { date: string; time: string } {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    date: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    time: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+  };
 }
 
 // Botón dividido: la mitad izquierda manda ya, la mitad derecha abre este
@@ -28,6 +41,8 @@ export function SendSplitButton({
   onSchedule,
   onSend,
   sendLabel = "Enviar",
+  extraActions = [],
+  initialDate,
 }: SendSplitButtonProps) {
   const [open, setOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -93,6 +108,21 @@ export function SendSplitButton({
     setTimeValue("");
   }
 
+  function openPicker() {
+    // Editando un programado, arranca con la fecha que ya tiene (si sigue siendo válida).
+    if (initialDate && isValidScheduleTime(initialDate)) {
+      const values = toInputValues(initialDate);
+      setDateValue(values.date);
+      setTimeValue(values.time);
+    }
+    setPickerOpen(true);
+  }
+
+  function handleExtraAction(onSelect: () => void) {
+    closeMenu();
+    onSelect();
+  }
+
   function handleQuickOption(date: Date) {
     closeMenu();
     onSchedule(date);
@@ -144,11 +174,23 @@ export function SendSplitButton({
             ref={refs.setFloating}
             style={floatingStyles}
             role="menu"
-            aria-label="Programar envío"
+            aria-label={extraActions.length > 0 ? "Opciones de envío" : "Programar envío"}
             className="z-50 w-64 rounded-md border border-gray-200 bg-white p-1 shadow-md"
           >
             {!pickerOpen ? (
               <>
+                {extraActions.map((action) => (
+                  <button
+                    key={action.label}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => handleExtraAction(action.onSelect)}
+                    className="block w-full rounded-md px-2.5 py-2 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                  >
+                    {action.label}
+                  </button>
+                ))}
+                {extraActions.length > 0 && <div className="my-1 border-t border-gray-100" />}
                 {quickOptions.map((opt) => (
                   <button
                     key={opt.id}
@@ -165,7 +207,7 @@ export function SendSplitButton({
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={() => setPickerOpen(true)}
+                  onClick={openPicker}
                   className="block w-full rounded-md px-2.5 py-2 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
                 >
                   Elegir fecha y hora…

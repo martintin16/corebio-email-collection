@@ -2,7 +2,7 @@ import { getMailboxesForCurrentUser } from "@/lib/api/mailboxes";
 import { getMessage, getSentMessageById } from "@/lib/api/messages";
 import { getScheduledMessageById } from "@/lib/api/scheduled-messages";
 import { buildForwardBody, buildForwardSubject, plainTextToHtml } from "@/lib/forward";
-import type { CarriedAttachments } from "@/components/compose/compose-form";
+import type { CarriedAttachments, EditingScheduled } from "@/components/compose/compose-form";
 import type { Mailbox } from "@/lib/types/mail";
 
 /**
@@ -30,7 +30,7 @@ export interface ComposePrefill {
     subject: string;
     body: string;
   };
-  editingScheduledId?: string;
+  editingScheduled?: EditingScheduled;
   carriedAttachments?: CarriedAttachments;
 }
 
@@ -59,7 +59,7 @@ export async function loadComposePrefill(params: ComposeSearchParams): Promise<C
         subject: editing.subject,
         body: editing.body,
       },
-      editingScheduledId: editing.id,
+      editingScheduled: { id: editing.id, scheduledAt: editing.scheduledAt, status: editing.status },
       // Los adjuntos que ya tiene el programado.
       carriedAttachments: { kind: "keep", attachments: editing.attachments },
     };

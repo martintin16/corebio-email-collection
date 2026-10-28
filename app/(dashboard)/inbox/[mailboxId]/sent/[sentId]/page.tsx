@@ -51,8 +51,7 @@ export default async function SentMessagePage({
       />
 
       <AttachmentList
-        mailboxId={params.mailboxId}
-        messageId={message.id}
+        source={{ kind: "message", mailboxId: params.mailboxId, messageId: message.id }}
         attachments={message.attachments}
       />
 

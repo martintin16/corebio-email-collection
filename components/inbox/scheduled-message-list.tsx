@@ -9,6 +9,7 @@ import { ClockIcon, EditIcon, TrashIcon } from "@/components/icons";
 import { useToast } from "@/components/ui/toast/toast-context";
 import { cancelScheduledMessage } from "@/lib/api/scheduled-messages";
 import { formatScheduledAt } from "@/lib/schedule-options";
+import { AttachmentList } from "@/components/inbox/attachment-list";
 import type { ScheduledMessage } from "@/lib/types/scheduled-message";
 
 interface ScheduledMessageListProps {
@@ -76,6 +77,11 @@ export function ScheduledMessageList({ initialItems }: ScheduledMessageListProps
               </div>
               <p className="truncate text-xs font-medium text-gray-700">{item.subject}</p>
               <p className="truncate text-xs text-gray-400">{item.bodyPreview}</p>
+              <AttachmentList
+                source={{ kind: "scheduled", scheduledId: item.id }}
+                attachments={item.attachments}
+                compact
+              />
               {item.status === "failed" ? (
                 <p className="mt-0.5 text-[11px] text-danger">
                   No se envió: {item.lastError ?? "error desconocido"}

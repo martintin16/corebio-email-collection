@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { composeSchema, type ComposeFormValues } from "@/lib/validations/compose";
 import type { Mailbox } from "@/lib/types/mail";
 import { Button } from "@/components/ui/button";
-import { PaperclipIcon, XIcon } from "@/components/icons";
+import { ClockIcon, PaperclipIcon, XIcon } from "@/components/icons";
 import { useToast } from "@/components/ui/toast/toast-context";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { useComposeBlocking } from "@/components/compose/compose-blocking-context";
@@ -19,6 +19,7 @@ import { htmlToPlainText } from "@/lib/utils";
 import { isValidEmail, parseRecipients } from "@/lib/recipients";
 import type { PickedGroup } from "@/lib/types/contact";
 import type { AttachmentInfo } from "@/lib/types/mail";
+import type { ScheduledMessageStatus } from "@/lib/types/scheduled-message";
 import { sendMessage } from "@/lib/api/messages.browser";
 import { scheduleMessage, updateScheduledMessage } from "@/lib/api/scheduled-messages.browser";
 import { formatScheduledAt } from "@/lib/schedule-options";
@@ -40,8 +41,8 @@ interface ComposeFormProps {
     subject: string;
     body: string;
   };
-  // Si viene, "Enviar" y "Programar" editan ese envío programado en vez de crear uno.
-  editingScheduledId?: string;
+  // Si viene, se edita ese envío programado en vez de crear uno.
+  editingScheduled?: EditingScheduled;
   carriedAttachments?: CarriedAttachments;
 }
 
@@ -54,7 +55,14 @@ export type CarriedAttachments =
   | { kind: "forward"; messageId: string; attachments: AttachmentInfo[] }
   | { kind: "keep"; attachments: AttachmentInfo[] };
 
-/** "Enviar" un programado que se está editando: lo antes que acepta el backend (1 minuto). */
+/** El programado que se está editando (?edit=<id>). */
+export interface EditingScheduled {
+  id: string;
+  scheduledAt: string;
+  status: ScheduledMessageStatus;
+}
+
+/** "Enviar ahora" un programado que se está editando: lo antes que acepta el backend (1 minuto). */
 const SEND_NOW_DELAY_MS = 75_000;
 
 const rowClass =
@@ -66,7 +74,7 @@ export function ComposeForm({
   mailboxes,
   mode,
   initialValues,
-  editingScheduledId,
+  editingScheduled,
   carriedAttachments,
 }: ComposeFormProps) {
   const router = useRouter();
@@ -106,6 +114,15 @@ export function ComposeForm({
   const recipientCount = [toValue, ccValue, bccValue]
     .flatMap((value) => parseRecipients(value ?? ""))
     .filter(isValidEmail).length;
+
+  // Editando un programado: ¿se puede mantener su fecha? Solo si sigue
+  // pendiente y falta más de lo que tarda "enviar ahora" (si no, guardar con
+  // esa fecha lo mandaría igual en el próximo minuto, o el backend la rechaza).
+  const scheduledDate = editingScheduled ? new Date(editingScheduled.scheduledAt) : undefined;
+  const keepScheduledDate =
+    editingScheduled?.status === "pending" &&
+    scheduledDate !== undefined &&
+    scheduledDate.getTime() > Date.now() + SEND_NOW_DELAY_MS;
 
   // Cc y Cco arrancan ocultos, como en Gmail. Los dos campos siguen montados
   // aunque estén ocultos, para poder mandarle grupos a Cco desde "Para".
@@ -174,10 +191,20 @@ export function ComposeForm({
   async function onSubmit(values: ComposeFormValues) {
     setFormError(null);
     setPendingAction("send");
-    // Editando un programado, "Enviar" lo adelanta: sale en la próxima vuelta
-    // del envío automático, con los adjuntos que ya tenía.
-    if (editingScheduledId) {
-      await saveScheduled(values, new Date(Date.now() + SEND_NOW_DELAY_MS), "Se enviará en un minuto.");
+    // Editando un programado, el botón principal guarda los cambios y deja la
+    // fecha como estaba. Si ya no se puede mantener (falló, o su hora pasó o
+    // está a menos de un minuto), lo manda en la próxima vuelta del envío
+    // automático, y el botón lo dice ("Guardar y enviar ahora").
+    if (editingScheduled) {
+      if (keepScheduledDate) {
+        await saveScheduled(
+          values,
+          null,
+          `Cambios guardados. Se enviará ${formatScheduledAt(new Date(editingScheduled.scheduledAt))}.`
+        );
+      } else {
+        await sendScheduledNow(values);
+      }
       return;
     }
     try {
@@ -205,24 +232,41 @@ export function ComposeForm({
     }
   }
 
-  async function saveScheduled(values: ComposeFormValues, date: Date, successMessage: string) {
+  /** "Enviar ahora" un programado que se está editando: sale en un minuto, con sus adjuntos. */
+  async function sendScheduledNow(values: ComposeFormValues) {
+    await saveScheduled(values, new Date(Date.now() + SEND_NOW_DELAY_MS), "Se enviará en un minuto.");
+  }
+
+  /**
+   * Crea o edita un programado. `date` null (solo al editar) = mantener la
+   * fecha que ya tiene: no se manda scheduledAt y el backend la conserva.
+   */
+  async function saveScheduled(values: ComposeFormValues, date: Date | null, successMessage: string) {
     const fields = {
       to: values.to,
       cc: values.cc,
       bcc: values.bcc,
       subject: values.subject,
       body: values.body,
-      scheduledAt: date.toISOString(),
     };
     try {
-      const result = editingScheduledId
+      const result = editingScheduled
         ? await updateScheduledMessage(
-            editingScheduledId,
-            { ...fields, keepAttachmentIds: carried.map((a) => a.id) },
+            editingScheduled.id,
+            {
+              ...fields,
+              ...(date ? { scheduledAt: date.toISOString() } : {}),
+              keepAttachmentIds: carried.map((a) => a.id),
+            },
             attachments
           )
         : await scheduleMessage(
-            { ...fields, mailboxId: values.mailboxId, forwardedAttachments: forwardedRefs() },
+            {
+              ...fields,
+              mailboxId: values.mailboxId,
+              scheduledAt: (date ?? new Date()).toISOString(),
+              forwardedAttachments: forwardedRefs(),
+            },
             attachments
           );
       if (!result.ok) {
@@ -280,6 +324,23 @@ export function ComposeForm({
         </div>
       )}
 
+      {editingScheduled && (
+        <p
+          className={
+            keepScheduledDate
+              ? "mb-3 flex items-center gap-1.5 rounded-md bg-primary-100 px-3 py-2 text-xs text-primary-700"
+              : "mb-3 flex items-center gap-1.5 rounded-md bg-warning-bg px-3 py-2 text-xs text-warning"
+          }
+        >
+          <ClockIcon className="h-3.5 w-3.5 shrink-0" />
+          {keepScheduledDate && scheduledDate
+            ? `Programado para ${formatScheduledAt(scheduledDate)}. "Guardar cambios" mantiene la fecha.`
+            : editingScheduled.status === "failed"
+              ? "Este envío no salió. Al guardar se manda en un minuto, o elegí otra fecha en el menú."
+              : "Su hora ya está por llegar. Al guardar se manda en un minuto, o elegí otra fecha en el menú."}
+        </p>
+      )}
+
       <div>
         {mailboxes.length > 1 ? (
           <div className={rowClass}>
@@ -295,7 +356,13 @@ export function ComposeForm({
             </select>
           </div>
         ) : (
-          <input type="hidden" {...register("mailboxId")} />
+          // Con una sola casilla no hay nada que elegir, pero igual se muestra
+          // desde cuál sale el mail.
+          <div className={rowClass}>
+            <span className="w-14 shrink-0 text-xs text-gray-500">De</span>
+            <span className="flex-1 truncate text-sm text-gray-500">{mailboxes[0]?.email}</span>
+            <input type="hidden" {...register("mailboxId")} />
+          </div>
         )}
 
         <div className={rowClass}>
@@ -396,11 +463,6 @@ export function ComposeForm({
             </p>
           )}
         </div>
-        {recipientCount > 1 && (
-          <p className="py-1 text-right text-xs text-gray-400" aria-live="polite">
-            {recipientCount} destinatarios
-          </p>
-        )}
 
         <div className={rowClass}>
           <label htmlFor="subject" className="w-14 shrink-0 text-xs text-gray-500">
@@ -507,11 +569,17 @@ export function ComposeForm({
       )}
 
       <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-3">
-        <label className="cursor-pointer text-gray-400 transition-colors hover:text-gray-600">
-          <PaperclipIcon className="h-4 w-4" />
-          <span className="sr-only">Adjuntar archivo</span>
-          <input type="file" multiple onChange={handleAttach} className="hidden" />
-        </label>
+        <div className="flex items-center gap-3">
+          <label className="cursor-pointer text-gray-400 transition-colors hover:text-gray-600">
+            <PaperclipIcon className="h-4 w-4" />
+            <span className="sr-only">Adjuntar archivo</span>
+            <input type="file" multiple onChange={handleAttach} className="hidden" />
+          </label>
+          {/* Abajo, junto a los botones: así no lo tapan las sugerencias de contactos. */}
+          <p className="text-xs text-gray-400" aria-live="polite">
+            {recipientCount > 1 ? `${recipientCount} destinatarios` : ""}
+          </p>
+        </div>
 
         <div className="flex gap-2">
           <Button type="button" variant="secondary" onClick={() => void goBack()} disabled={isSubmitting}>
@@ -521,6 +589,25 @@ export function ComposeForm({
             isLoading={isSubmitting}
             disabled={isSubmitting}
             onSchedule={handleScheduleClick}
+            sendLabel={
+              editingScheduled ? (keepScheduledDate ? "Guardar cambios" : "Guardar y enviar ahora") : "Enviar"
+            }
+            extraActions={
+              editingScheduled && keepScheduledDate
+                ? [
+                    {
+                      label: "Enviar ahora",
+                      onSelect: () =>
+                        void handleSubmit(async (values) => {
+                          setFormError(null);
+                          setPendingAction("send");
+                          await sendScheduledNow(values);
+                        })(),
+                    },
+                  ]
+                : []
+            }
+            initialDate={scheduledDate}
           />
         </div>
       </div>

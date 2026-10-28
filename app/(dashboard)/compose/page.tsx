@@ -11,7 +11,7 @@ export default async function ComposePage({
 }: {
   searchParams: ComposeSearchParams;
 }) {
-  const { mailboxes, title, initialValues, editingScheduledId, carriedAttachments } =
+  const { mailboxes, title, initialValues, editingScheduled, carriedAttachments } =
     await loadComposePrefill(searchParams);
 
   return (
@@ -21,7 +21,7 @@ export default async function ComposePage({
         mailboxes={mailboxes}
         mode="page"
         initialValues={initialValues}
-        editingScheduledId={editingScheduledId}
+        editingScheduled={editingScheduled}
         carriedAttachments={carriedAttachments}
       />
     </div>

@@ -163,7 +163,7 @@ export function TemplatesScreen({ mailboxes }: { mailboxes: Mailbox[] }) {
           <p className="text-xs text-gray-500" aria-live="polite">
             {loaded
               ? `${count} ${count === 1 ? "plantilla" : "plantillas"}${
-                  mailboxes.length > 1 && mailbox ? ` · ${mailbox.displayName}` : ""
+                  mailbox ? ` · ${mailbox.displayName}` : ""
                 }`
               : " "}
           </p>
