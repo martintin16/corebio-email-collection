@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { XIcon } from "@/components/icons";
 import { ComposeBlockingProvider, useComposeBlocking } from "@/components/compose/compose-blocking-context";
 import { pushDialogLayer, popDialogLayer, isTopDialogLayer } from "@/lib/dialog-stack";
@@ -23,16 +22,16 @@ export function ComposeModalShell({ children, title = "Nuevo mensaje" }: Compose
 // ComposeBlockingProvider recién provee un nivel más arriba — un componente
 // no puede consumir el contexto que él mismo declara.
 function ComposeModalShellInner({ children, title }: ComposeModalShellProps) {
-  const router = useRouter();
   // Mientras ComposeForm está enviando un mensaje con adjuntos (mismo
   // momento en que muestra su LoadingOverlay), este modal no se puede
   // cerrar ni con Escape ni clickeando el backdrop — cerrarlo ahí dejaría
-  // ese envío en curso sin ninguna pantalla que lo represente.
-  const blocking = useComposeBlocking()?.blocking ?? false;
+  // ese envío en curso sin ninguna pantalla que lo represente. Con algo
+  // escrito sin enviar, pregunta antes (ver ComposeBlockingProvider).
+  const context = useComposeBlocking();
+  const blocking = context?.blocking ?? false;
 
   function close() {
-    if (blocking) return;
-    router.back();
+    context?.requestClose();
   }
 
   const layerId = useRef<symbol>();
@@ -55,7 +54,7 @@ function ComposeModalShellInner({ children, title }: ComposeModalShellProps) {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blocking]);
+  }, [blocking, context]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 p-4">
@@ -67,7 +66,7 @@ function ComposeModalShellInner({ children, title }: ComposeModalShellProps) {
         aria-labelledby="compose-modal-title"
         // Alto máximo: con muchos destinatarios o adjuntos, el título y la X
         // quedan arriba, "Enviar" abajo (pie sticky en ComposeForm) y scrollea el medio.
-        className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-[420px] flex-col rounded-lg border border-gray-200 bg-white shadow-lg"
+        className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-[600px] flex-col rounded-lg border border-gray-200 bg-white shadow-lg"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3">
           <span id="compose-modal-title" className="text-sm font-medium text-gray-900">

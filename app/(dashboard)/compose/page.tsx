@@ -15,7 +15,7 @@ export default async function ComposePage({
     await loadComposePrefill(searchParams);
 
   return (
-    <div className="mx-auto max-w-[480px] p-6">
+    <div className="mx-auto max-w-[600px] p-6">
       <p className="mb-4 text-sm font-medium text-gray-900">{title}</p>
       <ComposeForm
         mailboxes={mailboxes}

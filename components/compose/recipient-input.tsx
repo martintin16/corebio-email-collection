@@ -97,6 +97,8 @@ function buildValue(list: RecipientEntry[], draft: string): string {
 }
 
 const EMPTY_DIRECTORY: ContactsDirectory = { status: "idle", groups: [], contacts: [] };
+/** Cuántos chips se ven antes de "y N más". */
+const COLLAPSE_AFTER = 8;
 
 // Campo "Para" de Redactar: un combobox de chips. Cada destinatario —persona
 // o grupo— es un chip que se quita solo; se puede seguir escribiendo una
@@ -147,6 +149,7 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
   const [activeIndex, setActiveIndex] = useState(0);
   const [addingGroupId, setAddingGroupId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [directory, setDirectory] = useState<ContactsDirectory>(EMPTY_DIRECTORY);
   const directoryRequest = useRef(0);
 
@@ -437,6 +440,11 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
       return;
     }
     if (e.key === "Backspace" && draft === "") {
+      // Con chips ocultos ("y N más"), el último no se ve: primero se despliegan.
+      if (hiddenCount > 0) {
+        setShowAll(true);
+        return;
+      }
       const last = entriesRef.current[entriesRef.current.length - 1];
       // Solo una persona: quitar de un Backspace un grupo entero (12
       // contactos) sería demasiado fácil de hacer sin querer.
@@ -469,6 +477,11 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
   }
 
   const hasEntries = entries.length > 0;
+  // Con muchos destinatarios (por ejemplo, una lista pegada) se ven los
+  // primeros y "y N más", como en Gmail; desplegados, el campo tiene alto
+  // máximo y scrollea adentro.
+  const hiddenCount = showAll ? 0 : Math.max(entries.length - COLLAPSE_AFTER, 0);
+  const visibleEntries = hiddenCount > 0 ? entries.slice(0, COLLAPSE_AFTER) : entries;
 
   return (
     <>
@@ -479,9 +492,9 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
         }}
         // min-w-0: sin esto, un grupo expandido (muchos chips) ensancha el campo
         // más allá del formulario en vez de bajar de línea.
-        className="flex min-h-[28px] min-w-0 flex-1 flex-wrap items-center gap-1.5"
+        className="flex max-h-40 min-h-[28px] min-w-0 flex-1 flex-wrap items-center gap-1.5 overflow-y-auto"
       >
-        {entries.map((entry) =>
+        {visibleEntries.map((entry) =>
           entry.kind === "person" ? (
             <PersonChip
               key={entry.key}
@@ -500,6 +513,24 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
               onRemoveMember={(contactId) => removeMember(entry.key, contactId)}
             />
           )
+        )}
+        {hiddenCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowAll(true)}
+            className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-200"
+          >
+            y {hiddenCount} más
+          </button>
+        )}
+        {showAll && entries.length > COLLAPSE_AFTER && (
+          <button
+            type="button"
+            onClick={() => setShowAll(false)}
+            className="rounded-full px-2 py-0.5 text-xs text-primary-700 hover:underline"
+          >
+            ver menos
+          </button>
         )}
 
         <input

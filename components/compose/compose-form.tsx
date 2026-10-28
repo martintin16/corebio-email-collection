@@ -24,6 +24,7 @@ import { sendMessage } from "@/lib/api/messages.browser";
 import { scheduleMessage, updateScheduledMessage } from "@/lib/api/scheduled-messages.browser";
 import { formatScheduledAt } from "@/lib/schedule-options";
 import { revalidateInbox } from "@/lib/api/revalidate";
+import { fitAttachments, formatSize } from "@/lib/attachments";
 
 interface ComposeFormProps {
   mailboxes: Mailbox[];
@@ -67,6 +68,13 @@ const SEND_NOW_DELAY_MS = 75_000;
 
 const rowClass =
   "flex items-center gap-3 border-b border-gray-200 py-2 last:border-b-0";
+// Para / Cc / Cco: con muchos chips el campo crece hacia abajo, así que la
+// etiqueta va arriba (no centrada en medio de un bloque alto).
+const recipientRowClass =
+  "flex items-start gap-3 border-b border-gray-200 py-2 last:border-b-0";
+const recipientLabelClass = "w-14 shrink-0 pt-1.5 text-xs text-gray-500";
+const chipClass =
+  "flex max-w-[240px] items-center gap-1.5 rounded-md bg-gray-100 py-1 pl-2.5 pr-1.5 text-xs text-gray-600";
 const rowInputClass =
   "flex-1 border-none bg-transparent p-0 text-sm text-gray-900 outline-none placeholder:text-gray-400";
 
@@ -82,6 +90,8 @@ export function ComposeForm({
   const [attachments, setAttachments] = useState<File[]>([]);
   const [carried, setCarried] = useState<AttachmentInfo[]>(carriedAttachments?.attachments ?? []);
   const [formError, setFormError] = useState<string | null>(null);
+  // Adjuntos que no entraron (más de 10 o más de 20 MB), se avisa junto a la lista.
+  const [attachError, setAttachError] = useState<string | null>(null);
   // Distingue "enviar ya" de "programar" solo para el texto del overlay —
   // ambos caminos comparten el mismo isSubmitting de react-hook-form.
   const [pendingAction, setPendingAction] = useState<"send" | "schedule">("send");
@@ -153,18 +163,31 @@ export function ComposeForm({
   }
   const hasBodyContent = htmlToPlainText(bodyValue ?? "").length > 0;
 
+  // Cuenta lo subido y lo que viene de Gmail (reenviados o los que ya tenía el programado).
+  const attachmentCount = attachments.length + carried.length;
+  const attachmentBytes =
+    attachments.reduce((sum, file) => sum + file.size, 0) +
+    carried.reduce((sum, a) => sum + a.size, 0);
+
   function handleAttach(e: ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
-      setAttachments((prev) => [...prev, ...Array.from(e.target.files!)]);
+      const { accepted, error } = fitAttachments(
+        { count: attachmentCount, bytes: attachmentBytes },
+        Array.from(e.target.files)
+      );
+      setAttachments((prev) => [...prev, ...accepted]);
+      setAttachError(error);
     }
     e.target.value = "";
   }
 
   function removeAttachment(index: number) {
+    setAttachError(null);
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
   function removeCarried(id: string) {
+    setAttachError(null);
     setCarried((prev) => prev.filter((a) => a.id !== id));
   }
 
@@ -316,6 +339,23 @@ export function ComposeForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showBlockingOverlay]);
 
+  // ¿Hay algo sin enviar? Para que cerrar el modal (Escape, X, fondo,
+  // Cancelar) pregunte antes de descartarlo. Se compara contra lo que había
+  // al abrir (el cuerpo como texto: el editor normaliza el HTML al montarse).
+  const subjectValue = useWatch({ control, name: "subject" });
+  const hasChanges =
+    (toValue ?? "") !== (initialValues?.to ?? "") ||
+    (ccValue ?? "") !== (initialValues?.cc ?? "") ||
+    (bccValue ?? "") !== (initialValues?.bcc ?? "") ||
+    (subjectValue ?? "") !== (initialValues?.subject ?? "") ||
+    htmlToPlainText(bodyValue ?? "") !== htmlToPlainText(initialValues?.body ?? "") ||
+    attachments.length > 0 ||
+    carried.length !== (carriedAttachments?.attachments.length ?? 0);
+  useEffect(() => {
+    composeBlocking?.setDirty(hasChanges);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasChanges]);
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="relative">
       <LoadingOverlay
@@ -373,8 +413,8 @@ export function ComposeForm({
           </div>
         )}
 
-        <div className={rowClass}>
-          <label htmlFor="to" className="w-14 shrink-0 text-xs text-gray-500">
+        <div className={recipientRowClass}>
+          <label htmlFor="to" className={recipientLabelClass}>
             Para
           </label>
           <Controller
@@ -392,7 +432,7 @@ export function ComposeForm({
               />
             )}
           />
-          <div className="flex shrink-0 gap-2 text-xs text-gray-500">
+          <div className="flex shrink-0 gap-2 pt-1.5 text-xs text-gray-500">
             {!showCc && (
               <button type="button" onClick={() => setShowCc(true)} className="hover:text-gray-800 hover:underline">
                 Cc
@@ -412,8 +452,8 @@ export function ComposeForm({
         )}
 
         <div className={showCc ? undefined : "hidden"}>
-          <div className={rowClass}>
-            <label htmlFor="cc" className="w-14 shrink-0 text-xs text-gray-500">
+          <div className={recipientRowClass}>
+            <label htmlFor="cc" className={recipientLabelClass}>
               Cc
             </label>
             <Controller
@@ -440,8 +480,8 @@ export function ComposeForm({
         </div>
 
         <div className={showBcc ? undefined : "hidden"}>
-          <div className={rowClass}>
-            <label htmlFor="bcc" className="w-14 shrink-0 text-xs text-gray-500">
+          <div className={recipientRowClass}>
+            <label htmlFor="bcc" className={recipientLabelClass}>
               Cco
             </label>
             <Controller
@@ -533,41 +573,50 @@ export function ComposeForm({
         </p>
       )}
 
-      {attachments.length + carried.length > 0 && (
+      {attachmentCount > 1 && (
+        <p className="mt-2 text-xs text-gray-400" aria-live="polite">
+          {attachmentCount} adjuntos · {formatSize(attachmentBytes)}
+        </p>
+      )}
+      {attachError && (
+        <p role="alert" className="mt-1 text-xs text-danger">
+          {attachError}
+        </p>
+      )}
+      {attachmentCount > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {carried.map((attachment) => (
             <span
               key={`carried-${attachment.id}`}
-              className="flex items-center gap-1.5 rounded-md bg-gray-100 py-1 pl-2.5 pr-1.5 text-xs text-gray-600"
-              title={
+              className={chipClass}
+              title={`${attachment.filename} · ${
                 carriedAttachments?.kind === "forward"
                   ? "Adjunto del mensaje original"
                   : "Adjunto que ya tenía el envío"
-              }
+              }`}
             >
-              <PaperclipIcon className="h-3 w-3 text-gray-400" />
-              {attachment.filename}
+              <PaperclipIcon className="h-3 w-3 shrink-0 text-gray-400" />
+              <span className="truncate">{attachment.filename}</span>
+              <span className="shrink-0 text-gray-400">{formatSize(attachment.size)}</span>
               <button
                 type="button"
                 onClick={() => removeCarried(attachment.id)}
                 aria-label={`Quitar ${attachment.filename}`}
-                className="text-gray-400 hover:text-gray-600"
+                className="shrink-0 text-gray-400 hover:text-gray-600"
               >
                 <XIcon className="h-3 w-3" />
               </button>
             </span>
           ))}
           {attachments.map((file, i) => (
-            <span
-              key={`${file.name}-${i}`}
-              className="flex items-center gap-1.5 rounded-md bg-gray-100 py-1 pl-2.5 pr-1.5 text-xs text-gray-600"
-            >
-              {file.name}
+            <span key={`${file.name}-${i}`} className={chipClass} title={file.name}>
+              <span className="truncate">{file.name}</span>
+              <span className="shrink-0 text-gray-400">{formatSize(file.size)}</span>
               <button
                 type="button"
                 onClick={() => removeAttachment(i)}
                 aria-label={`Quitar ${file.name}`}
-                className="text-gray-400 hover:text-gray-600"
+                className="shrink-0 text-gray-400 hover:text-gray-600"
               >
                 <XIcon className="h-3 w-3" />
               </button>
@@ -592,7 +641,13 @@ export function ComposeForm({
         </div>
 
         <div className="flex gap-2">
-          <Button type="button" variant="secondary" onClick={() => void goBack()} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="secondary"
+            // En el modal, cerrar pregunta si hay algo sin enviar (ComposeBlockingProvider).
+            onClick={() => (composeBlocking ? composeBlocking.requestClose() : void goBack())}
+            disabled={isSubmitting}
+          >
             Cancelar
           </Button>
           <SendSplitButton

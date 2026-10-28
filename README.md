@@ -252,6 +252,14 @@ siguiente (`loadMoreMessages` / `loadMoreSent`, acciones con `ActionResult`). `u
 cargado cuando la primera página se vuelve a pedir sola (refresco, enviar): si un mail nuevo empuja al
 último de la primera página, no se pierde. El filtro por etiqueta sigue siendo sobre lo ya cargado.
 
+**Redactar con mucho contenido (Addendum 5, página 53):** Redactar mide 600 px. En Para/Cc/Cco se ven
+8 chips y "y N más" (desplegado, el campo tiene alto máximo y scrollea; las etiquetas van arriba). Los
+adjuntos se validan al elegirlos con los límites del backend (`lib/attachments.ts`: 10 archivos, 20 MB,
+contando los reenviados), en chips de un renglón con tamaño y el total arriba; Responder valida igual.
+En la lista de Programados, más de 2 adjuntos se resumen ("📎 10 adjuntos · 8,1 MB") y se despliegan al
+tocarlos. Cerrar el modal con algo sin enviar (X, Escape, fondo o Cancelar) pregunta "¿Descartar el
+mensaje?" (`ComposeBlockingProvider.requestClose`).
+
 **Reenviar también un recibido** (agregado después, ver Addendum 5 del PDF): el detalle de un recibido
 tiene "Reenviar" al lado de "Responder" (mismo `ForwardButton`, vía `secondaryAction` de `ReplyBox`).
 Redactar lo distingue por la URL: `?forward=<id>&mailbox=<casilla>` es un recibido (lo pide con

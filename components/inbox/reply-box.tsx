@@ -12,6 +12,7 @@ import { htmlToPlainText } from "@/lib/utils";
 import { replyToMessage } from "@/lib/api/messages.browser";
 import { scheduleMessage } from "@/lib/api/scheduled-messages.browser";
 import { formatScheduledAt } from "@/lib/schedule-options";
+import { fitAttachments } from "@/lib/attachments";
 
 interface ReplyBoxProps {
   mailboxId: string;
@@ -39,6 +40,7 @@ export function ReplyBox({
   const [attachments, setAttachments] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [bodyError, setBodyError] = useState(false);
+  const [attachError, setAttachError] = useState<string | null>(null);
   // Ídem ComposeForm: distingue "enviar ya" de "programar" solo para el
   // texto del overlay bloqueante.
   const [pendingAction, setPendingAction] = useState<"send" | "schedule">("send");
@@ -56,12 +58,19 @@ export function ReplyBox({
 
   function handleAttach(e: ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
-      setAttachments((prev) => [...prev, ...Array.from(e.target.files!)]);
+      // Mismos límites que el backend (10 archivos, 20 MB): se avisa al elegir.
+      const { accepted, error } = fitAttachments(
+        { count: attachments.length, bytes: attachments.reduce((sum, f) => sum + f.size, 0) },
+        Array.from(e.target.files)
+      );
+      setAttachments((prev) => [...prev, ...accepted]);
+      setAttachError(error);
     }
     e.target.value = "";
   }
 
   function removeAttachment(index: number) {
+    setAttachError(null);
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -173,6 +182,11 @@ export function ReplyBox({
         </p>
       )}
 
+      {attachError && (
+        <p role="alert" className="px-3.5 pb-1 text-xs text-danger">
+          {attachError}
+        </p>
+      )}
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-1.5 px-3.5 pb-2">
           {attachments.map((file, i) => (

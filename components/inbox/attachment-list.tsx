@@ -6,22 +6,22 @@ import { useToast } from "@/components/ui/toast/toast-context";
 import { downloadMessageAttachment } from "@/lib/api/messages.browser";
 import { downloadScheduledAttachment } from "@/lib/api/scheduled-messages.browser";
 import { cn } from "@/lib/utils";
+import { formatSize } from "@/lib/attachments";
 import type { AttachmentInfo } from "@/lib/types/mail";
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB`;
-}
 
 /** De dónde se bajan: un mensaje de Gmail (recibido o enviado) o un envío programado. */
 type AttachmentSource =
   | { kind: "message"; mailboxId: string; messageId: string }
   | { kind: "scheduled"; scheduledId: string };
 
+/** En una fila de lista (compact), con más de estos se muestra un resumen que se despliega. */
+const COMPACT_MAX = 2;
+
 /**
  * Los adjuntos de un recibido, un enviado o un programado, cada uno con su
- * botón de descarga. `compact`: versión chica para las filas de una lista.
+ * botón de descarga. `compact`: versión chica para las filas de una lista;
+ * con más de 2 adjuntos muestra "📎 10 adjuntos · 840 KB" y se despliega al tocarlo.
  */
 export function AttachmentList({
   source,
@@ -34,8 +34,26 @@ export function AttachmentList({
 }) {
   const { showToast } = useToast();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   if (attachments.length === 0) return null;
+
+  if (compact && attachments.length > COMPACT_MAX && !expanded) {
+    const total = attachments.reduce((sum, a) => sum + a.size, 0);
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        aria-expanded={false}
+        className="mt-1.5 flex items-center gap-1.5 rounded-md border border-gray-200 px-2 py-1 text-[11px] text-gray-700 transition-colors hover:bg-gray-50"
+        title="Ver los adjuntos"
+      >
+        <PaperclipIcon className="h-3 w-3 shrink-0 text-gray-400" />
+        {attachments.length} adjuntos
+        <span className="text-gray-400">· {formatSize(total)}</span>
+      </button>
+    );
+  }
 
   async function download(attachment: AttachmentInfo) {
     setDownloadingId(attachment.id);
