@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSentMessage } from "@/lib/api/messages";
+import { getSentMessage, getThread } from "@/lib/api/messages";
 import { getMailboxesForCurrentUser } from "@/lib/api/mailboxes";
-import { formatFullDate } from "@/lib/format";
 import { ForwardButton } from "@/components/inbox/forward-button";
-import { AddressSummary } from "@/components/inbox/address-summary";
+import { MessageMeta } from "@/components/inbox/message-meta";
+import { Conversation } from "@/components/inbox/conversation";
 import { AttachmentList } from "@/components/inbox/attachment-list";
 import { ArrowLeftIcon } from "@/components/icons";
 
@@ -13,9 +13,10 @@ export default async function SentMessagePage({
 }: {
   params: { mailboxId: string; sentId: string };
 }) {
-  const [message, mailboxes] = await Promise.all([
+  const [message, mailboxes, thread] = await Promise.all([
     getSentMessage(params.mailboxId, params.sentId),
     getMailboxesForCurrentUser(),
+    getThread(params.mailboxId, params.sentId),
   ]);
   if (!message) notFound();
   // Reenviar manda desde esta casilla: sin canSend no se muestra.
@@ -35,48 +36,32 @@ export default async function SentMessagePage({
       <h1 className="mb-1 break-words text-lg font-medium text-gray-900 [overflow-wrap:anywhere]">
         {message.subject}
       </h1>
-      <p className="text-xs text-gray-500">
-        {message.to ? (
-          <AddressSummary prefix="Para" value={message.to} />
-        ) : (
-          "Para (sin destinatarios visibles)"
+      <div className="mb-3" />
+
+      {/* La conversación: los otros mensajes del hilo colapsados y este completo. */}
+      <Conversation mailboxId={params.mailboxId} thread={thread} currentId={message.id}>
+        <MessageMeta to={message.to} cc={message.cc} bcc={message.bcc} date={message.sentAt} />
+
+        <div className="my-4 border-t border-gray-200" />
+
+        {/* body es HTML ya sanitizado por el backend (quita scripts, iframes,
+            formularios y `on*`): Enviados también tiene mails mandados desde Gmail. */}
+        <div
+          className="email-body text-sm leading-relaxed text-gray-800"
+          dangerouslySetInnerHTML={{ __html: message.body }}
+        />
+
+        <AttachmentList
+          source={{ kind: "message", mailboxId: params.mailboxId, messageId: message.id }}
+          attachments={message.attachments}
+        />
+
+        {canSend && (
+          <div className="mt-6">
+            <ForwardButton messageId={message.id} />
+          </div>
         )}
-        {message.cc && (
-          <>
-            {" "}
-            · <AddressSummary prefix="cc" value={message.cc} />
-          </>
-        )}
-        {message.bcc && (
-          <>
-            {" "}
-            · <AddressSummary prefix="cco" value={message.bcc} />
-          </>
-        )}
-      </p>
-      <p className="mb-4 mt-0.5 text-xs text-gray-400">
-        <time dateTime={message.sentAt}>{formatFullDate(message.sentAt)}</time>
-      </p>
-
-      <div className="mb-5 border-t border-gray-200" />
-
-      {/* body es HTML ya sanitizado por el backend (quita scripts, iframes,
-          formularios y `on*`): Enviados también tiene mails mandados desde Gmail. */}
-      <div
-        className="email-body text-sm leading-relaxed text-gray-800"
-        dangerouslySetInnerHTML={{ __html: message.body }}
-      />
-
-      <AttachmentList
-        source={{ kind: "message", mailboxId: params.mailboxId, messageId: message.id }}
-        attachments={message.attachments}
-      />
-
-      {canSend && (
-        <div className="mt-6">
-          <ForwardButton messageId={message.id} />
-        </div>
-      )}
+      </Conversation>
     </div>
   );
 }

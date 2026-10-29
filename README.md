@@ -270,6 +270,23 @@ contactos" marca como "ya agregado" también a quienes están en otro campo. La 
 pregunta "¿Descartar el mensaje?" igual que el modal, y cerrar o recargar la pestaña con algo sin enviar
 hace que el navegador pregunte.
 
+**Buscar, conversación y no leídos (Addendum 6, backend Fase 11):**
+- **Buscador** (`MailboxSearch`) debajo de las pestañas de Recibidos y Enviados: busca con la búsqueda de
+  Gmail al apretar Enter o al dejar de escribir medio segundo (desde 2 letras). La búsqueda vive en
+  `ListQueryProvider` (layout de la casilla) y se limpia al cambiar de pestaña o de casilla.
+- **Etiquetas desde Gmail**: el filtro es de una etiqueta por vez (`MailboxLabelsProvider.filterId`) y
+  la lista la pide a Gmail, combinada con la búsqueda. Con búsqueda o filtro, `useSearchPage` pide la
+  primera página desde el navegador (`listMessages` / `listSentMessages`) y `usePagedList` sigue con
+  "Cargar más"; el refresco de cada minuto repite la búsqueda sin vaciar la lista. `ListStatusBar` dice
+  qué se está viendo y cómo volver.
+- **Clip** en las filas con adjuntos (`AttachmentClip`, en `MessageRow` y `SentMessageRow`).
+- **Conversación** en el detalle de recibidos y enviados (`Conversation` + `ThreadMessageItem`): los
+  otros mensajes del hilo colapsados en una línea y el abierto completo; con más de 5, los del medio en
+  "N mensajes más" (`lib/conversation.ts`). Si el hilo no se puede traer, el detalle se ve como antes.
+  `MessageMeta` arma la línea de remitente, destinatarios y fecha en los tres lugares.
+- **"(3) Corebio Mail"** en la pestaña del navegador con los no leídos de Recibidos (`useUnreadTitle`,
+  con el `inboxUnread` del chequeo de cada minuto).
+
 **Reenviar también un recibido** (agregado después, ver Addendum 5 del PDF): el detalle de un recibido
 tiene "Reenviar" al lado de "Responder" (mismo `ForwardButton`, vía `secondaryAction` de `ReplyBox`).
 Redactar lo distingue por la URL: `?forward=<id>&mailbox=<casilla>` es un recibido (lo pide con

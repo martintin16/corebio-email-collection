@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getMessage } from "@/lib/api/messages";
+import { getMessage, getThread } from "@/lib/api/messages";
 import { getMailboxesForCurrentUser } from "@/lib/api/mailboxes";
-import { formatFullDate } from "@/lib/format";
 import { ForwardButton } from "@/components/inbox/forward-button";
-import { AddressSummary } from "@/components/inbox/address-summary";
+import { MessageMeta } from "@/components/inbox/message-meta";
+import { Conversation } from "@/components/inbox/conversation";
 import { ReplyBox } from "@/components/inbox/reply-box";
 import { LabelPicker } from "@/components/inbox/label-picker";
 import { MessageLabelChips } from "@/components/inbox/message-label-chips";
@@ -16,9 +16,10 @@ export default async function MessagePage({
 }: {
   params: { mailboxId: string; messageId: string };
 }) {
-  const [message, mailboxes] = await Promise.all([
+  const [message, mailboxes, thread] = await Promise.all([
     getMessage(params.mailboxId, params.messageId),
     getMailboxesForCurrentUser(),
+    getThread(params.mailboxId, params.messageId),
   ]);
   if (!message) notFound();
   // Responder y Reenviar mandan desde esta casilla: sin canSend no se muestran.
@@ -47,44 +48,37 @@ export default async function MessagePage({
         />
       </div>
       <MessageLabelChips messageId={message.id} initialLabelIds={message.labelIds} />
-      <p className="text-xs text-gray-500">
-        {message.from.name} &lt;{message.from.email}&gt; ·{" "}
-        <AddressSummary prefix="para" value={message.to} />
-        {message.cc && (
-          <>
-            {" "}
-            · <AddressSummary prefix="cc" value={message.cc} />
-          </>
+      <div className="mb-3" />
+
+      {/* La conversación: los otros mensajes del hilo colapsados y este completo. */}
+      <Conversation mailboxId={params.mailboxId} thread={thread} currentId={message.id}>
+        <MessageMeta from={message.from} to={message.to} cc={message.cc} date={message.receivedAt} />
+
+        <div className="my-4 border-t border-gray-200" />
+
+        {/* overflow-wrap: un link o una dirección larga sin espacios no ensancha la columna. */}
+        <p className="whitespace-pre-line text-sm leading-relaxed text-gray-800 [overflow-wrap:anywhere]">
+          {message.body}
+        </p>
+
+        <AttachmentList
+          source={{ kind: "message", mailboxId: params.mailboxId, messageId: message.id }}
+          attachments={message.attachments}
+        />
+
+        {canSend && (
+          <div className="mt-6">
+            <ReplyBox
+              mailboxId={params.mailboxId}
+              messageId={message.id}
+              replyToName={message.from.name}
+              replyToEmail={message.from.email}
+              subject={message.subject}
+              secondaryAction={<ForwardButton messageId={message.id} mailboxId={params.mailboxId} />}
+            />
+          </div>
         )}
-      </p>
-      <p className="mb-4 mt-0.5 text-xs text-gray-400">
-        <time dateTime={message.receivedAt}>{formatFullDate(message.receivedAt)}</time>
-      </p>
-
-      <div className="mb-5 border-t border-gray-200" />
-
-      {/* overflow-wrap: un link o una dirección larga sin espacios no ensancha la columna. */}
-      <p className="whitespace-pre-line text-sm leading-relaxed text-gray-800 [overflow-wrap:anywhere]">
-        {message.body}
-      </p>
-
-      <AttachmentList
-        source={{ kind: "message", mailboxId: params.mailboxId, messageId: message.id }}
-        attachments={message.attachments}
-      />
-
-      {canSend && (
-        <div className="mt-6">
-          <ReplyBox
-            mailboxId={params.mailboxId}
-            messageId={message.id}
-            replyToName={message.from.name}
-            replyToEmail={message.from.email}
-            subject={message.subject}
-            secondaryAction={<ForwardButton messageId={message.id} mailboxId={params.mailboxId} />}
-          />
-        </div>
-      )}
+      </Conversation>
     </div>
   );
 }
