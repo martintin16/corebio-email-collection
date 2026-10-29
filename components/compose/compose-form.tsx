@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ClockIcon, PaperclipIcon, XIcon } from "@/components/icons";
 import { useToast } from "@/components/ui/toast/toast-context";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useComposeBlocking } from "@/components/compose/compose-blocking-context";
 import { RichTextEditor } from "@/components/compose/rich-text-editor";
 import { RecipientInput, type RecipientInputHandle } from "@/components/compose/recipient-input";
@@ -356,6 +357,27 @@ export function ComposeForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasChanges]);
 
+  // Cerrar o recargar la pestaña con algo sin enviar: el navegador pregunta
+  // (su propio cartel; el texto no se puede cambiar).
+  useEffect(() => {
+    if (!hasChanges || isSubmitting) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasChanges, isSubmitting]);
+
+  // En la página completa (/compose) no hay modal que pregunte: el mismo
+  // "¿Descartar el mensaje?" vive acá.
+  const [discardOpen, setDiscardOpen] = useState(false);
+  function handleCancel() {
+    if (composeBlocking) composeBlocking.requestClose();
+    else if (hasChanges) setDiscardOpen(true);
+    else void goBack();
+  }
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="relative">
       <LoadingOverlay
@@ -423,6 +445,7 @@ export function ComposeForm({
             render={({ field }) => (
               <RecipientInput
                 id="to"
+                otherFieldEmails={[ccValue, bccValue].flatMap((v) => parseRecipients(v ?? ""))}
                 onGroupsPicked={sendGroupsToBcc}
                 mailboxId={selectedMailboxId}
                 value={field.value}
@@ -462,6 +485,7 @@ export function ComposeForm({
               render={({ field }) => (
                 <RecipientInput
                   id="cc"
+                  otherFieldEmails={[toValue, bccValue].flatMap((v) => parseRecipients(v ?? ""))}
                   mailboxId={selectedMailboxId}
                   value={field.value}
                   onChange={field.onChange}
@@ -491,6 +515,7 @@ export function ComposeForm({
                 <RecipientInput
                   ref={bccRef}
                   id="bcc"
+                  otherFieldEmails={[toValue, ccValue].flatMap((v) => parseRecipients(v ?? ""))}
                   mailboxId={selectedMailboxId}
                   value={field.value}
                   onChange={field.onChange}
@@ -644,8 +669,8 @@ export function ComposeForm({
           <Button
             type="button"
             variant="secondary"
-            // En el modal, cerrar pregunta si hay algo sin enviar (ComposeBlockingProvider).
-            onClick={() => (composeBlocking ? composeBlocking.requestClose() : void goBack())}
+            // Si hay algo sin enviar, pregunta antes (en el modal o en la página).
+            onClick={handleCancel}
             disabled={isSubmitting}
           >
             Cancelar
@@ -676,6 +701,19 @@ export function ComposeForm({
           />
         </div>
       </div>
+      {!composeBlocking && (
+        <ConfirmDialog
+          open={discardOpen}
+          title="¿Descartar el mensaje?"
+          description="Lo que escribiste no se envió y se va a perder."
+          confirmLabel="Descartar"
+          onConfirm={() => {
+            setDiscardOpen(false);
+            void goBack();
+          }}
+          onCancel={() => setDiscardOpen(false)}
+        />
+      )}
     </form>
   );
 }

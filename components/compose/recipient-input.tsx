@@ -79,6 +79,11 @@ interface RecipientInputProps {
   invalid?: boolean;
   describedBy?: string;
   disabled?: boolean;
+  /**
+   * Direcciones que ya están en los otros campos (Para/Cc/Cco): en "Elegir de
+   * contactos" aparecen tildadas como "ya agregado", igual que las de este.
+   */
+  otherFieldEmails?: string[];
 }
 
 function emailsOf(list: RecipientEntry[]): string[] {
@@ -121,6 +126,7 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
       disabled,
       onGroupsPicked,
       placeholder,
+      otherFieldEmails = [],
     },
     handleRef
   ) {
@@ -152,6 +158,12 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
   const [showAll, setShowAll] = useState(false);
   const [directory, setDirectory] = useState<ContactsDirectory>(EMPTY_DIRECTORY);
   const directoryRequest = useRef(0);
+  // Búsqueda en Google mientras se escribe: suma "Otros contactos" (gente a
+  // la que la casilla ya le escribió aunque no esté agendada).
+  const [remote, setRemote] = useState<{ query: string; contacts: Contact[] }>({
+    query: "",
+    contacts: [],
+  });
 
   function apply(next: RecipientEntry[], nextDraft: string) {
     entriesRef.current = next;
@@ -175,6 +187,26 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
         setDirectory({ status: "error", groups: [], contacts: [] });
       });
   }, [mailboxId]);
+
+  // Busca en Google 300 ms después de dejar de escribir (no en cada tecla),
+  // desde 2 letras. Si falla (sin conexión, sin permiso de Otros contactos),
+  // quedan las sugerencias de la agenda: no se muestra ningún error.
+  const query = draft.trim();
+  useEffect(() => {
+    if (!focused || query.length < 2 || query.includes(",")) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      searchContacts(mailboxId, query)
+        .then((contacts) => {
+          if (!cancelled) setRemote({ query, contacts });
+        })
+        .catch(() => {});
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, mailboxId, focused]);
 
   // Otra casilla "De" = otros contactos: se descarta lo cargado (y cualquier
   // respuesta que todavía venga en camino) y se vuelve a pedir al usar el campo.
@@ -202,6 +234,7 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
       }
     }
     let contactCount = 0;
+    const offered = new Set<string>();
     for (const contact of directory.contacts) {
       if (contactCount >= 6) break;
       if (taken.has(contact.email.toLowerCase())) continue;
@@ -210,6 +243,18 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
         normalizeText(contact.email).includes(needle)
       ) {
         options.push({ type: "contact", contact });
+        offered.add(contact.email.toLowerCase());
+        contactCount += 1;
+      }
+    }
+    // Después, lo que encontró Google (incluye "Otros contactos"), sin repetir.
+    if (normalizeText(remote.query) === needle) {
+      for (const contact of remote.contacts) {
+        if (contactCount >= 6) break;
+        const key = contact.email.toLowerCase();
+        if (taken.has(key) || offered.has(key)) continue;
+        options.push({ type: "contact", contact });
+        offered.add(key);
         contactCount += 1;
       }
     }
@@ -641,7 +686,9 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
         directory={directory}
         onRetryDirectory={loadDirectory}
         onAdd={handlePicked}
-        presentEmails={new Set(emailsOf(entries).map((email) => email.toLowerCase()))}
+        presentEmails={
+          new Set([...emailsOf(entries), ...otherFieldEmails].map((email) => email.toLowerCase()))
+        }
       />
     </>
   );

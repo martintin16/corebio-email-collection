@@ -264,6 +264,12 @@ mensaje?" (`ComposeBlockingProvider.requestClose`).
 "Volver a la bandeja"), 404 general en castellano (`app/not-found.tsx`) y `app/global-error.tsx` como último
 recurso. Favicon (`app/icon.svg`): el mismo sobre blanco sobre verde del menú.
 
+**Pendientes, fase 1:** "Para"/Cc/Cco buscan también en Google mientras se escribe (300 ms después de la
+última tecla, desde 2 letras): suma "Otros contactos", a quienes la casilla ya les escribió. "Elegir de
+contactos" marca como "ya agregado" también a quienes están en otro campo. La página completa de Redactar
+pregunta "¿Descartar el mensaje?" igual que el modal, y cerrar o recargar la pestaña con algo sin enviar
+hace que el navegador pregunte.
+
 **Reenviar también un recibido** (agregado después, ver Addendum 5 del PDF): el detalle de un recibido
 tiene "Reenviar" al lado de "Responder" (mismo `ForwardButton`, vía `secondaryAction` de `ReplyBox`).
 Redactar lo distingue por la URL: `?forward=<id>&mailbox=<casilla>` es un recibido (lo pide con
