@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AlertIcon } from "@/components/icons";
@@ -22,6 +23,17 @@ export default function DashboardError({
     console.error(error);
   }, [error]);
 
+  // reset() solo redibuja en el navegador: el error vino de pedir datos en el
+  // servidor, así que primero hay que volver a pedirlos (router.refresh()).
+  const router = useRouter();
+  const [retrying, startTransition] = useTransition();
+  function retry() {
+    startTransition(() => {
+      router.refresh();
+      reset();
+    });
+  }
+
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
       <AlertIcon className="h-6 w-6 text-gray-400" />
@@ -30,7 +42,7 @@ export default function DashboardError({
         Puede ser un problema temporal de conexión con el servidor. Probá de nuevo en unos segundos.
       </p>
       <div className="flex gap-2">
-        <Button variant="secondary" onClick={reset}>
+        <Button variant="secondary" onClick={retry} isLoading={retrying}>
           Reintentar
         </Button>
         <Link
