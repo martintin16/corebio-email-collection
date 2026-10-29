@@ -667,8 +667,15 @@ export const RecipientInput = forwardRef<RecipientInputHandle, RecipientInputPro
                       </>
                     ) : (
                       <span className="min-w-0 flex-1 truncate text-gray-800">
-                        {option.contact.name}{" "}
-                        <span className="text-gray-400">&lt;{option.contact.email}&gt;</span>
+                        {/* Sin nombre (o con la dirección como nombre), solo la dirección: no repetirla. */}
+                        {option.contact.name && option.contact.name !== option.contact.email ? (
+                          <>
+                            {option.contact.name}{" "}
+                            <span className="text-gray-400">&lt;{option.contact.email}&gt;</span>
+                          </>
+                        ) : (
+                          option.contact.email
+                        )}
                       </span>
                     )}
                   </li>
