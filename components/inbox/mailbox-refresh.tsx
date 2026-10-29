@@ -6,6 +6,7 @@ import { getSyncState } from "@/lib/api/sync";
 import type { MailboxSyncState } from "@/lib/types/sync";
 import { RefreshIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { useUnreadTitle } from "@/components/inbox/use-unread-title";
 
 /** Cada cuánto se pregunta si hay novedades (solo con la pestaña visible). */
 const SYNC_INTERVAL_MS = 60_000;
@@ -34,6 +35,9 @@ export function MailboxRefresh({ mailboxId }: { mailboxId: string }) {
   const last = useRef<string | null>(null);
   const inFlight = useRef(false);
   const lastCheckAt = useRef(0);
+  // No leídos de Recibidos, del mismo chequeo: "(3) Corebio Mail" en la pestaña.
+  const [unread, setUnread] = useState<number | null>(null);
+  useUnreadTitle(unread);
 
   const refresh = useCallback(() => startTransition(() => router.refresh()), [router]);
 
@@ -45,6 +49,7 @@ export function MailboxRefresh({ mailboxId }: { mailboxId: string }) {
     try {
       const state = await getSyncState(mailboxId);
       if (!state) return false;
+      setUnread(state.inboxUnread);
       const next = fingerprint(state);
       const changed = last.current !== null && last.current !== next;
       last.current = next;
