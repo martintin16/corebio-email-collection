@@ -23,8 +23,9 @@ interface MailboxLabelsContextValue {
   // alguna) tiene prioridad sobre lo que vino del servidor.
   getLabelIds: (messageId: string, fallback: string[]) => string[];
   setLabelIds: (messageId: string, ids: string[]) => void;
-  // Filtro de la bandeja: ids de las etiquetas elegidas (OR entre ellas).
-  filterIds: string[];
+  // Filtro de Recibidos: la etiqueta elegida (una por vez; la lista la pide a
+  // Gmail, ver MessageList). null = sin filtro.
+  filterId: string | null;
   toggleFilter: (labelId: string) => void;
   clearFilter: () => void;
 }
@@ -55,7 +56,7 @@ export function MailboxLabelsProvider({
   const [status, setStatus] = useState<LabelsStatus>("loading");
   const [reloadToken, setReloadToken] = useState(0);
   const [overrides, setOverrides] = useState<Record<string, string[]>>({});
-  const [filterIds, setFilterIds] = useState<string[]>([]);
+  const [filterId, setFilterId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,13 +86,12 @@ export function MailboxLabelsProvider({
     setOverrides((prev) => ({ ...prev, [messageId]: ids }));
   }, []);
 
+  // Tocar otra etiqueta cambia el filtro; tocar la elegida lo saca.
   const toggleFilter = useCallback((labelId: string) => {
-    setFilterIds((prev) =>
-      prev.includes(labelId) ? prev.filter((id) => id !== labelId) : [...prev, labelId]
-    );
+    setFilterId((prev) => (prev === labelId ? null : labelId));
   }, []);
 
-  const clearFilter = useCallback(() => setFilterIds([]), []);
+  const clearFilter = useCallback(() => setFilterId(null), []);
 
   const labelsById = useMemo(() => new Map(labels.map((l) => [l.id, l] as const)), [labels]);
 
@@ -103,11 +103,11 @@ export function MailboxLabelsProvider({
       reload,
       getLabelIds,
       setLabelIds,
-      filterIds,
+      filterId,
       toggleFilter,
       clearFilter,
     }),
-    [labels, labelsById, status, reload, getLabelIds, setLabelIds, filterIds, toggleFilter, clearFilter]
+    [labels, labelsById, status, reload, getLabelIds, setLabelIds, filterId, toggleFilter, clearFilter]
   );
 
   return <MailboxLabelsContext.Provider value={value}>{children}</MailboxLabelsContext.Provider>;

@@ -6,6 +6,7 @@ import { ApiError, isReconnectError } from "@/lib/api/errors";
 import { MailboxListPanel } from "@/components/inbox/mailbox-list-panel";
 import { MailboxSplitView } from "@/components/inbox/mailbox-split-view";
 import { MailboxLabelsProvider } from "@/components/inbox/mailbox-labels-provider";
+import { ListQueryProvider } from "@/components/inbox/list-query-provider";
 import { MailboxUnavailable } from "@/components/inbox/mailbox-unavailable";
 
 export default async function MailboxLayout({
@@ -58,19 +59,21 @@ export default async function MailboxLayout({
   // monta de cero (otro catálogo de etiquetas, el filtro vuelve a "Todas").
   return (
     <MailboxLabelsProvider key={mailbox.id} mailboxId={mailbox.id}>
-      <MailboxSplitView
-        listPanel={
-          <MailboxListPanel
-            mailboxes={mailboxes}
-            mailbox={mailbox}
-            messages={messages}
-            sent={sent}
-            scheduled={scheduled}
-          />
-        }
-      >
-        {children}
-      </MailboxSplitView>
+      <ListQueryProvider key={mailbox.id}>
+        <MailboxSplitView
+          listPanel={
+            <MailboxListPanel
+              mailboxes={mailboxes}
+              mailbox={mailbox}
+              messages={messages}
+              sent={sent}
+              scheduled={scheduled}
+            />
+          }
+        >
+          {children}
+        </MailboxSplitView>
+      </ListQueryProvider>
     </MailboxLabelsProvider>
   );
 }

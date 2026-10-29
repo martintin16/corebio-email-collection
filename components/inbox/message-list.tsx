@@ -1,46 +1,112 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { MessagePage, MessageSummary } from "@/lib/types/mail";
-import { loadMoreMessages } from "@/lib/api/messages";
-import { usePagedList } from "@/components/inbox/use-paged-list";
-import { LoadMoreButton } from "@/components/inbox/load-more-button";
-import { formatMessageDate } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { listMessages } from "@/lib/api/messages";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
-import { InboxIcon } from "@/components/icons";
-import { LabelChip } from "@/components/inbox/label-chip";
+import { InboxIcon, SearchIcon } from "@/components/icons";
 import { useMailboxLabels } from "@/components/inbox/mailbox-labels-provider";
+import { useListQuery } from "@/components/inbox/list-query-provider";
+import { usePagedList } from "@/components/inbox/use-paged-list";
+import { useSearchPage } from "@/components/inbox/use-search-page";
+import { LoadMoreButton } from "@/components/inbox/load-more-button";
+import { ListStatusBar } from "@/components/inbox/list-status-bar";
+import { ListLoading } from "@/components/inbox/list-loading";
+import { MessageRow } from "@/components/inbox/message-row";
 
 interface MessageListProps {
   mailboxId: string;
+  /** Primera página normal de Recibidos (la trae el layout y se refresca sola). */
   firstPage: MessagePage<MessageSummary>;
 }
 
-// Cuántos chips de etiqueta caben en una fila de la lista antes de resumir
-// el resto como "+N" — el panel es angosto (280px), más de tres no entran.
-const MAX_CHIPS_PER_ROW = 3;
+const EMPTY_PAGE: MessagePage<MessageSummary> = { items: [], nextPageToken: null };
 
+/**
+ * Lista de Recibidos. Sin búsqueda ni filtro muestra la primera página del
+ * layout; con búsqueda (MailboxSearch) o una etiqueta (InboxLabelFilter) pide
+ * los resultados a Gmail desde el navegador. En los dos casos, "Cargar más".
+ */
 export function MessageList({ mailboxId, firstPage }: MessageListProps) {
   const params = useParams<{ messageId?: string }>();
-  const paged = usePagedList(firstPage, (token) => loadMoreMessages(mailboxId, token));
+  const { labelsById, getLabelIds, filterId, clearFilter } = useMailboxLabels();
+  const { query, setQuery } = useListQuery();
+
+  const filtering = query !== "" || filterId !== null;
+  const searchKey = `${query}|${filterId ?? ""}`;
+  const listParams = { q: query || undefined, labelId: filterId ?? undefined };
+  const search = useSearchPage({
+    active: filtering,
+    key: searchKey,
+    refreshSignal: firstPage,
+    fetchPage: () => listMessages(mailboxId, listParams),
+  });
+  const paged = usePagedList(
+    filtering ? (search.page ?? EMPTY_PAGE) : firstPage,
+    (pageToken) => listMessages(mailboxId, { ...listParams, pageToken }),
+    filtering ? searchKey : ""
+  );
   const messages = paged.items;
-  const { labelsById, getLabelIds, filterIds, clearFilter } = useMailboxLabels();
+
   // Abiertos en esta pantalla: el backend los marca leídos al abrirlos, pero
-  // la lista viene del layout, que Next no vuelve a pedir al abrir un mail.
-  // Se marcan acá al momento. No se vacía al llegar una lista nueva: lo
-  // cargado con "Cargar más" no se vuelve a pedir, y un mail abierto ya
-  // quedó leído en Gmail.
+  // la lista no se vuelve a pedir al abrir un mail. Se marcan acá al momento.
   const [openedIds, setOpenedIds] = useState<ReadonlySet<string>>(new Set());
   // El que está abierto también (por ejemplo, si se entró directo por URL).
   const isUnread = (message: MessageSummary) =>
     message.unread && !openedIds.has(message.id) && params.messageId !== message.id;
 
-  if (messages.length === 0) {
+  function clearAll() {
+    setQuery("");
+    clearFilter();
+  }
+
+  const labelName = filterId ? labelsById.get(filterId)?.name : undefined;
+  const statusBar = filtering && (
+    <ListStatusBar query={query} labelName={labelName} onClear={query ? () => setQuery("") : clearAll} />
+  );
+
+  if (filtering && search.loading) {
     return (
+      <>
+        {statusBar}
+        <ListLoading />
+      </>
+    );
+  }
+
+  if (filtering && search.error && messages.length === 0) {
+    return (
+      <>
+        {statusBar}
+        <p role="alert" className="px-4 py-6 text-center text-xs text-danger">
+          {search.error}
+        </p>
+      </>
+    );
+  }
+
+  if (messages.length === 0) {
+    return filtering ? (
+      <>
+        {statusBar}
+        <EmptyState
+          icon={SearchIcon}
+          title="No hay mails que coincidan"
+          description={
+            query
+              ? "Probá con otras palabras o sacá el filtro de etiqueta."
+              : "Ningún mail tiene esta etiqueta todavía."
+          }
+          action={
+            <Button type="button" variant="secondary" onClick={clearAll}>
+              {query ? "Quitar búsqueda" : "Quitar filtro"}
+            </Button>
+          }
+        />
+      </>
+    ) : (
       <EmptyState
         icon={InboxIcon}
         title="No hay mensajes"
@@ -49,104 +115,23 @@ export function MessageList({ mailboxId, firstPage }: MessageListProps) {
     );
   }
 
-  // Filtro por etiqueta: OR entre las elegidas (alcanza con tener una).
-  const visible =
-    filterIds.length === 0
-      ? messages
-      : messages.filter((m) => getLabelIds(m.id, m.labelIds).some((id) => filterIds.includes(id)));
-
-  if (visible.length === 0) {
-    return (
-      <EmptyState
-        icon={InboxIcon}
-        title={filterIds.length === 1 ? "No hay mensajes con esa etiqueta" : "No hay mensajes con esas etiquetas"}
-        description="Probá con otra etiqueta o volvé a ver todos los mensajes."
-        action={
-          <Button type="button" variant="secondary" onClick={clearFilter}>
-            Quitar filtro
-          </Button>
-        }
-      />
-    );
-  }
-
-  const filterNames = filterIds
-    .map((id) => labelsById.get(id)?.name)
-    .filter((name): name is string => name !== undefined)
-    .join(" o ");
-
   return (
     <>
-      {filterIds.length > 0 && (
-        <p role="status" className="border-b border-gray-200 px-4 py-2 text-[11px] text-gray-400">
-          {visible.length === 1 ? "1 mensaje" : `${visible.length} mensajes`} con {filterNames}
-        </p>
-      )}
+      {statusBar}
       <ul aria-label="Mensajes" className="divide-y divide-gray-200">
-        {visible.map((message) => {
-          const active = params.messageId === message.id;
-          const unread = isUnread(message);
-          const messageLabels = getLabelIds(message.id, message.labelIds)
-            .map((id) => labelsById.get(id))
-            .filter((label): label is NonNullable<typeof label> => label !== undefined);
-          return (
-            <li key={message.id}>
-              <Link
-                href={`/inbox/${mailboxId}/${message.id}`}
-                onClick={() => setOpenedIds((prev) => new Set(prev).add(message.id))}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex gap-2.5 px-4 py-2.5 transition-colors",
-                  active ? "bg-gray-100" : "hover:bg-gray-50"
-                )}
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
-                    unread ? "bg-primary-600" : "bg-transparent"
-                  )}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span
-                      className={cn(
-                        "truncate text-sm",
-                        unread ? "font-medium text-gray-900" : "text-gray-600"
-                      )}
-                    >
-                      {message.from.name}
-                      {unread && <span className="sr-only"> (no leído)</span>}
-                    </span>
-                    <span className="shrink-0 text-[11px] text-gray-400">
-                      {formatMessageDate(message.receivedAt)}
-                    </span>
-                  </div>
-                  <p
-                    className={cn(
-                      "truncate text-xs",
-                      unread ? "font-medium text-gray-800" : "text-gray-500"
-                    )}
-                  >
-                    {message.subject}
-                  </p>
-                  {messageLabels.length > 0 && (
-                    <div className="mt-1 flex flex-wrap items-center gap-1">
-                      {messageLabels.slice(0, MAX_CHIPS_PER_ROW).map((label) => (
-                        <LabelChip key={label.id} label={label} />
-                      ))}
-                      {messageLabels.length > MAX_CHIPS_PER_ROW && (
-                        <span className="text-[11px] text-gray-400">
-                          +{messageLabels.length - MAX_CHIPS_PER_ROW}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </Link>
-            </li>
-          );
-        })}
+        {messages.map((message) => (
+          <MessageRow
+            key={message.id}
+            mailboxId={mailboxId}
+            message={message}
+            unread={isUnread(message)}
+            active={params.messageId === message.id}
+            labels={getLabelIds(message.id, message.labelIds)
+              .map((id) => labelsById.get(id))
+              .filter((label): label is NonNullable<typeof label> => label !== undefined)}
+            onOpen={() => setOpenedIds((prev) => new Set(prev).add(message.id))}
+          />
+        ))}
       </ul>
       {paged.hasMore && (
         <LoadMoreButton loading={paged.loading} error={paged.error} onClick={() => void paged.load()} />

@@ -8,6 +8,7 @@ import { SentMessageList } from "@/components/inbox/sent-message-list";
 import { ScheduledMessageList } from "@/components/inbox/scheduled-message-list";
 import { MailboxTabs } from "@/components/inbox/mailbox-tabs";
 import { InboxLabelFilter } from "@/components/inbox/inbox-label-filter";
+import { MailboxSearch } from "@/components/inbox/mailbox-search";
 import type { Mailbox, MessagePage, MessageSummary, SentMessageSummary } from "@/lib/types/mail";
 import type { ScheduledMessage } from "@/lib/types/scheduled-message";
 
@@ -36,6 +37,9 @@ export function MailboxListPanel({ mailboxes, mailbox, messages, sent, scheduled
         <MailboxRefresh key={mailbox.id} mailboxId={mailbox.id} />
       </div>
       <MailboxTabs mailboxId={mailbox.id} scheduledCount={scheduled.length} />
+      {/* Programados es una lista corta: no necesita buscador. */}
+      {tab === "inbox" && <MailboxSearch placeholder="Buscar en Recibidos" />}
+      {tab === "sent" && <MailboxSearch placeholder="Buscar en Enviados" />}
       {/* Las etiquetas son de las conversaciones recibidas — Enviados y
           Programados no tienen nada para filtrar por etiqueta. */}
       {tab === "inbox" && <InboxLabelFilter />}

@@ -28,6 +28,8 @@ export interface MessageSummary {
   unread: boolean;
   // Ids de las etiquetas de Gmail aplicadas a la conversación (ver MailLabel).
   labelIds: string[];
+  // Si trae adjuntos (el clip de la fila).
+  hasAttachments: boolean;
 }
 
 export interface MessageDetail extends MessageSummary {
@@ -45,6 +47,7 @@ export interface SentMessageSummary {
   subject: string;
   snippet: string;
   sentAt: string; // ISO
+  hasAttachments: boolean;
 }
 
 export interface SentMessageDetail extends SentMessageSummary {
@@ -62,4 +65,21 @@ export interface SentMessageDetail extends SentMessageSummary {
 export interface MessagePage<T> {
   items: T[];
   nextPageToken: string | null;
+}
+
+/**
+ * Un mensaje de la conversación (GET .../messages/:id/thread). El cuerpo va en
+ * texto plano (en un hilo hay mensajes de terceros).
+ */
+export interface ThreadMessage {
+  id: string;
+  from: { name: string; email: string };
+  to: string;
+  cc: string;
+  date: string; // ISO
+  snippet: string;
+  body: string;
+  attachments: AttachmentInfo[];
+  // Mandado desde la casilla.
+  sent: boolean;
 }

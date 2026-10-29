@@ -6,16 +6,16 @@ import { getLabelColors } from "@/lib/label-colors";
 import { cn } from "@/lib/utils";
 
 // Fila de chips arriba de la lista de Recibidos para filtrar por etiqueta.
-// Multi-selección con OR (cualquiera de las elegidas, no todas a la vez —
-// igual que cuando se combinan etiquetas en una búsqueda de Gmail). Solo
-// mira la lista, nunca modifica nada. No se muestra si la casilla no tiene
+// Una etiqueta por vez: la lista trae de Gmail todos los mails de esa
+// etiqueta (no solo los ya cargados) y se combina con la búsqueda. Tocar la
+// elegida, o "Todas", saca el filtro. No se muestra si la casilla no tiene
 // etiquetas, ni mientras todavía cargan.
 export function InboxLabelFilter() {
-  const { labels, status, filterIds, toggleFilter, clearFilter } = useMailboxLabels();
+  const { labels, status, filterId, toggleFilter, clearFilter } = useMailboxLabels();
 
   if (status !== "loaded" || labels.length === 0) return null;
 
-  const noFilter = filterIds.length === 0;
+  const noFilter = filterId === null;
 
   return (
     // Una sola línea con scroll horizontal: con muchas etiquetas, en varias
@@ -37,7 +37,7 @@ export function InboxLabelFilter() {
         Todas
       </button>
       {labels.map((label) => {
-        const selected = filterIds.includes(label.id);
+        const selected = filterId === label.id;
         const colors = getLabelColors(label);
         return (
           <button

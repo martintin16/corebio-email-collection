@@ -8,6 +8,7 @@ import type {
   MessageSummary,
   SentMessageDetail,
   SentMessageSummary,
+  ThreadMessage,
 } from "@/lib/types/mail";
 import type { MailLabel } from "@/lib/types/label";
 
@@ -30,23 +31,51 @@ async function orNull<T>(load: () => Promise<T>): Promise<T | null> {
 
 // --- Recibidos ----------------------------------------------------------------
 
-/** `?pageToken=` opcional (la página siguiente). */
-const page = (pageToken?: string) =>
-  pageToken ? `?pageToken=${encodeURIComponent(pageToken)}` : "";
+/** Búsqueda y filtro de una lista; `pageToken` pide la página siguiente. */
+export interface ListParams {
+  q?: string;
+  labelId?: string;
+  pageToken?: string;
+}
+
+/** "?q=…&labelId=…&pageToken=…" con lo que venga (vacío si no hay nada). */
+function queryString(params: ListParams): string {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.labelId) search.set("labelId", params.labelId);
+  if (params.pageToken) search.set("pageToken", params.pageToken);
+  const text = search.toString();
+  return text ? `?${text}` : "";
+}
 
 /** La primera página de Recibidos (la pide el layout de la casilla). */
 export async function getMessages(mailboxId: string): Promise<MessagePage<MessageSummary>> {
   return http.get(`${box(mailboxId)}/messages`);
 }
 
-/** "Cargar más" en Recibidos: la página siguiente. */
-export async function loadMoreMessages(
+/**
+ * Una página de Recibidos desde el navegador: con búsqueda (`q`, la de Gmail),
+ * filtro por etiqueta y/o la página siguiente ("Cargar más").
+ */
+export async function listMessages(
   mailboxId: string,
-  pageToken: string
+  params: ListParams
 ): Promise<ActionResult<MessagePage<MessageSummary>>> {
   return http.action(() =>
-    http.get<MessagePage<MessageSummary>>(`${box(mailboxId)}/messages${page(pageToken)}`)
+    http.get<MessagePage<MessageSummary>>(`${box(mailboxId)}/messages${queryString(params)}`)
   );
+}
+
+/** La conversación del mensaje (recibido o enviado). [] si no se pudo traer: el detalle se ve igual. */
+export async function getThread(mailboxId: string, messageId: string): Promise<ThreadMessage[]> {
+  try {
+    return await http.get<ThreadMessage[]>(
+      `${box(mailboxId)}/messages/${encodeURIComponent(messageId)}/thread`
+    );
+  } catch (err) {
+    if (err instanceof ApiError) return [];
+    throw err;
+  }
 }
 
 /** Abrirlo lo marca como leído (como en Gmail). */
@@ -66,13 +95,13 @@ export async function getSentMessages(mailboxId: string): Promise<MessagePage<Se
   return http.get(`${box(mailboxId)}/sent`);
 }
 
-/** "Cargar más" en Enviados. */
-export async function loadMoreSent(
+/** Una página de Enviados desde el navegador: con búsqueda y/o la página siguiente. */
+export async function listSentMessages(
   mailboxId: string,
-  pageToken: string
+  params: Omit<ListParams, "labelId">
 ): Promise<ActionResult<MessagePage<SentMessageSummary>>> {
   return http.action(() =>
-    http.get<MessagePage<SentMessageSummary>>(`${box(mailboxId)}/sent${page(pageToken)}`)
+    http.get<MessagePage<SentMessageSummary>>(`${box(mailboxId)}/sent${queryString(params)}`)
   );
 }
 

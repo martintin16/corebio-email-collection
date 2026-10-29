@@ -15,7 +15,9 @@ import type { MessagePage } from "@/lib/types/mail";
  */
 export function usePagedList<T extends { id: string }>(
   firstPage: MessagePage<T>,
-  loadMore: (pageToken: string) => Promise<ActionResult<MessagePage<T>>>
+  loadMore: (pageToken: string) => Promise<ActionResult<MessagePage<T>>>,
+  /** Otra lista (otra búsqueda, otra etiqueta): lo cargado con "Cargar más" se descarta. */
+  resetKey = ""
 ) {
   // Lo cargado con "Cargar más" (sin lo que ya está en la primera página).
   const [more, setMore] = useState<T[]>([]);
@@ -24,10 +26,18 @@ export function usePagedList<T extends { id: string }>(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const previousFirst = useRef(firstPage);
+  const previousKey = useRef(resetKey);
 
   useEffect(() => {
     const before = previousFirst.current;
     previousFirst.current = firstPage;
+    if (previousKey.current !== resetKey) {
+      previousKey.current = resetKey;
+      setMore([]);
+      setMoreToken(undefined);
+      setError(null);
+      return;
+    }
     if (before === firstPage) return;
     setMore((current) => {
       if (current.length === 0) return current;
@@ -35,7 +45,7 @@ export function usePagedList<T extends { id: string }>(
       const carried = [...before.items, ...current].filter((item) => !inFirst.has(item.id));
       return dedupe(carried);
     });
-  }, [firstPage]);
+  }, [firstPage, resetKey]);
 
   const nextToken = moreToken === undefined ? firstPage.nextPageToken : moreToken;
 
