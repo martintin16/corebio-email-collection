@@ -33,8 +33,9 @@ interface TemplateEditorDialogProps {
 
 const NAME_TAKEN_MESSAGE = "Ya existe una plantilla con ese nombre";
 
-/** Lo máximo que acepta el backend por pedido (ver JSON_BODY_LIMIT en el backend). */
-const MAX_TEMPLATE_BYTES = 2 * 1024 * 1024;
+/** Máximo del cuerpo: el mismo que el backend (MAX_BODY_LENGTH) y con el mismo mensaje. */
+const MAX_BODY_LENGTH = 1_000_000;
+const BODY_TOO_LONG = "El texto es demasiado largo (máximo 1.000.000 de caracteres)";
 
 // Se monta solo mientras está abierto (el padre lo renderiza condicionalmente),
 // así cada apertura arranca con el formulario limpio, sin tener que resetearlo.
@@ -77,8 +78,8 @@ export function TemplateEditorDialog({
   async function onSubmit(values: TemplateFormValues) {
     setFormError(null);
     // Mismo máximo que el backend: avisar acá, sin mandar un pedido que va a rebotar.
-    if (new Blob([values.body]).size > MAX_TEMPLATE_BYTES) {
-      setFormError("El contenido es demasiado grande (máximo 2 MB).");
+    if (values.body.length > MAX_BODY_LENGTH) {
+      setFormError(BODY_TOO_LONG);
       return;
     }
     const name = values.name.trim();
